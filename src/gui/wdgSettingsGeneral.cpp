@@ -136,14 +136,17 @@ void wdgSettingsGeneral::language_set(void) {
 		case LNG_ITALIAN:
 			lang = 2;
 			break;
-		case LNG_RUSSIAN:
+		case LNG_PORTUGUESEBR:
 			lang = 3;
 			break;
-		case LNG_SPANISH:
+		case LNG_RUSSIAN:
 			lang = 4;
 			break;
-		case LNG_TURKISH:
+		case LNG_SPANISH:
 			lang = 5;
+			break;
+		case LNG_TURKISH:
+			lang = 6;
 			break;
 	}
 
@@ -193,7 +196,7 @@ void wdgSettingsGeneral::s_mode(int index) {
 	if (reset) {
 		QString ascii = uQString(opt_mode[machine.type].lname);
 
-		text_add_line_info(1, "switched to [green]%s", ascii.toLatin1().constData());
+		gui_overlay_info_append_msg_precompiled(22, (void *)&ascii);
 
 		emu_reset(CHANGE_MODE);
 
@@ -249,6 +252,7 @@ void wdgSettingsGeneral::s_rewind_minutes(int index) {
 	emu_thread_pause();
 	cfg->rewind_minutes = minutes;
 	rewind_init();
+	gui_update();
 	emu_thread_continue();
 }
 void wdgSettingsGeneral::s_language(int index) {
@@ -266,12 +270,15 @@ void wdgSettingsGeneral::s_language(int index) {
 			lang = LNG_ITALIAN;
 			break;
 		case 3:
-			lang = LNG_RUSSIAN;
+			lang = LNG_PORTUGUESEBR;
 			break;
 		case 4:
-			lang = LNG_SPANISH;
+			lang = LNG_RUSSIAN;
 			break;
 		case 5:
+			lang = LNG_SPANISH;
+			break;
+		case 6:
 			lang = LNG_TURKISH;
 			break;
 	}
@@ -299,7 +306,7 @@ void wdgSettingsGeneral::s_game_genie_rom_file(UNUSED(bool checked)) {
 			ustrncpy(cfg->gg_rom_file, uQStringCD(fileinfo.absoluteFilePath()), usizeof(cfg->gg_rom_file) - 1);
 			update_widget();
 		} else {
-			text_add_line_info(1, "[red]error on game genie rom file");
+			gui_overlay_info_append_msg_precompiled(23, NULL);
 		}
 	}
 
@@ -330,7 +337,7 @@ void wdgSettingsGeneral::s_fds_bios_file(UNUSED(bool checked)) {
 			ustrncpy(cfg->fds_bios_file, uQStringCD(fileinfo.absoluteFilePath()), usizeof(cfg->fds_bios_file) - 1);
 			update_widget();
 		} else {
-			text_add_line_info(1, "[red]error on FDS BIOS file");
+			gui_overlay_info_append_msg_precompiled(24, NULL);
 		}
 	}
 

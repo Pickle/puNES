@@ -27,7 +27,6 @@
 #include "dlgSettings.hpp"
 #include "dlgStdPad.hpp"
 #include "emu_thread.h"
-#include "conf.h"
 
 typedef struct _cb_ports {
 	QString desc;
@@ -914,7 +913,7 @@ void wdgSettingsInput::s_input_reset(UNUSED(bool checked)) {
 	update_widget();
 }
 void wdgSettingsInput::s_input_timeout(void) {
-	input_info_print(tr("Press a key (ESC for the previous value \"%1\") - timeout in %2").arg(	shcut.text[shcut.type].at(shcut.row),
+	input_info_print(tr("Press a key (ESC for the previous value \"%1\") - timeout in %2").arg(shcut.text[shcut.type].at(shcut.row),
 		QString::number(shcut.timeout.seconds--)));
 
 	if (shcut.timeout.seconds < 0) {

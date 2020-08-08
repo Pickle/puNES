@@ -21,6 +21,7 @@
 #include <QtGui/QImage>
 #include <QtCore/QDir>
 #include <QtGui/QScreen>
+#include <QtGui/QFontDatabase>
 #if defined (_WIN32)
 #include <QtCore/QtPlugin>
 #if defined (QT5_PLUGIN_QWINDOWS)
@@ -56,6 +57,7 @@ Q_IMPORT_PLUGIN(QSvgPlugin)
 #include "wdgScreen.hpp"
 #include "wdgStatusBar.hpp"
 #include "wdgSettingsVideo.hpp"
+#include "wdgOverlayUi.hpp"
 #include "video/gfx_thread.h"
 #include "emu_thread.h"
 #include "version.h"
@@ -130,6 +132,14 @@ BYTE gui_create(void) {
 	QSurfaceFormat::setDefaultFormat(fmt);
 #endif
 
+<<<<<<< HEAD
+=======
+	QFontDatabase::addApplicationFont(":/fonts/fonts/Blocktopia.ttf");
+	QFontDatabase::addApplicationFont(":/fonts/fonts/ChronoType.ttf");
+	QFontDatabase::addApplicationFont(":/fonts/fonts/DigitalCounter7-AqDg.ttf");
+	QFontDatabase::addApplicationFont(":/fonts/fonts/Rygarde.ttf");
+
+>>>>>>> ca4ffb49c03167bdc8ad8a7a8927a8507e677835
 	qt.mwin = new mainWindow();
 	qt.screen = qt.mwin->screen;
 	qt.objch->setParent(qt.mwin);
@@ -150,12 +160,13 @@ BYTE gui_create(void) {
 			cfg->last_pos.x = 0;
 			cfg->last_pos_settings.y = 0;
 		}
-		qt.mwin->move(QPoint(cfg->last_pos.x, cfg->last_pos.y));
+		qt.mwin->setGeometry(cfg->last_pos.x, cfg->last_pos.y, 0, 0);
 	}
 
 	qt.mwin->show();
 
 	qt.dset = new dlgSettings();
+	overlay.widget = new wdgOverlayUi();
 
 	memset(&ext_win, 0x00, sizeof(ext_win));
 	qt.vssystem = new dlgVsSystem(qt.mwin);
@@ -174,6 +185,7 @@ BYTE gui_create(void) {
 	QEvent event(QEvent::LanguageChange);
 	QApplication::sendEvent(qt.mwin, &event);
 	QApplication::sendEvent(qt.dset, &event);
+	QApplication::sendEvent(overlay.widget, &event);
 
 	return (EXIT_OK);
 }
@@ -187,25 +199,51 @@ void gui_start(void) {
 
 void gui_set_video_mode(void) {
 	if (cfg->scale == X1) {
-		qt.mwin->statusbar->state_setVisible(false);
+		qt.mwin->toolbar->rotate_setVisible(false);
+		qt.mwin->toolbar->state_setVisible(false);
 		if (overscan.enabled) {
 			qt.mwin->menu_Help->menuAction()->setVisible(false);
 		} else {
 			qt.mwin->menu_Help->menuAction()->setVisible(true);
 		}
 	} else {
-		qt.mwin->statusbar->state_setVisible(true);
+		qt.mwin->toolbar->rotate_setVisible(true);
+		qt.mwin->toolbar->state_setVisible(true);
 		qt.mwin->menu_Help->menuAction()->setVisible(true);
 	}
 
-	qt.screen->setFixedSize(QSize(gfx.w[VIDEO_MODE], gfx.h[VIDEO_MODE]));
+	{
+		SDBWORD w = gfx.w[VIDEO_MODE], h = gfx.h[VIDEO_MODE];
 
-	qt.mwin->setFixedSize(QSize(qt.screen->width(),
-		(qt.mwin->menubar->isHidden() ? 0 : qt.mwin->menubar->sizeHint().height()) + qt.screen->height() +
-		(qt.mwin->statusbar->isHidden() ? 0 : qt.mwin->statusbar->sizeHint().height())));
+		if (!cfg->fullscreen && ((cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270))) {
+			w = gfx.h[VIDEO_MODE];
+			h = gfx.w[VIDEO_MODE];
+		}
 
-	qt.mwin->menubar->setFixedWidth(gfx.w[VIDEO_MODE]);
-	qt.mwin->statusbar->update_width(gfx.w[VIDEO_MODE]);
+		qt.screen->setFixedSize(QSize(w, h));
+
+		gui_set_window_size();
+	}
+}
+void gui_set_window_size(void) {
+	int w = qt.screen->width(), h = qt.screen->height();
+	bool toolbar = qt.mwin->toolbar->isHidden() | qt.mwin->toolbar->isFloating();
+
+	w = qt.screen->width();
+
+	if (qt.mwin->toolbar->orientation() == Qt::Vertical) {
+		w += (toolbar ? 0 : qt.mwin->toolbar->sizeHint().width());
+	} else {
+		h += (toolbar ? 0 : qt.mwin->toolbar->sizeHint().height());
+	}
+
+	h += (qt.mwin->menubar->isHidden() ? 0 : qt.mwin->menubar->sizeHint().height());
+	h += (qt.mwin->statusbar->isHidden() ? 0 : qt.mwin->statusbar->sizeHint().height());
+
+	qt.mwin->setFixedSize(QSize(w, h));
+
+	qt.mwin->menubar->setFixedWidth(w);
+	qt.mwin->statusbar->update_width(w);
 }
 
 void gui_update(void) {
@@ -217,6 +255,7 @@ void gui_update(void) {
 	qt.mwin->setWindowTitle(uQString(title));
 	qt.mwin->update_window();
 	qt.dset->update_dialog();
+	overlay.widget->update_widget();
 
 	gui.in_update = FALSE;
 }
@@ -339,7 +378,7 @@ void *gui_mainwindow_get_ptr(void) {
 }
 
 void *gui_wdgrewind_get_ptr(void) {
-	return ((void *)qt.mwin->statusbar->rewind);
+	return ((void *)qt.mwin->toolbar->rewind);
 }
 void gui_wdgrewind_play(void) {
 	wdgrewind->toolButton_Play->click();
@@ -353,6 +392,58 @@ void gui_emit_et_vs_reset(void) {
 }
 void gui_emit_et_external_control_windows_show(void) {
 	emit qt.mwin->et_external_control_windows_show();
+}
+
+void gui_decode_all_input_events(void) {
+	if (!qt.screen->events.keyb.count() && !qt.screen->events.mouse.count()) {
+		return;
+	}
+
+	qt.screen->events.mutex.lock();
+
+	// keyboard
+	if (qt.screen->events.keyb.count()) {
+		for (QList<_wdgScreen_keyboard_event>::iterator e = qt.screen->events.keyb.begin(); e != qt.screen->events.keyb.end(); ++e)
+		{
+			_wdgScreen_keyboard_event &event = *e;
+
+			for (BYTE i = PORT1; i < PORT_MAX; i++) {
+				if (port_funct[i].input_decode_event && (port_funct[i].input_decode_event(event.mode,
+					event.autorepeat, event.event, event.type, &port[i]) == EXIT_OK)) {
+					break;
+				}
+			}
+		}
+		qt.screen->events.keyb.clear();
+	}
+
+	// mouse
+	if (qt.screen->events.mouse.count()) {
+		for (QList<_wdgScreen_mouse_event>::iterator e = qt.screen->events.mouse.begin(); e != qt.screen->events.mouse.end(); ++e)
+		{
+			_wdgScreen_mouse_event &event = *e;
+
+			if ((event.type == QEvent::MouseButtonPress) || (event.type == QEvent::MouseButtonDblClick)) {
+				if (event.button == Qt::LeftButton) {
+					gmouse.left = TRUE;
+				} else if (event.button == Qt::RightButton) {
+					gmouse.right = TRUE;
+				}
+			} else if (event.type == QEvent::MouseButtonRelease) {
+				if (event.button == Qt::LeftButton) {
+					gmouse.left = FALSE;
+				} else if (event.button == Qt::RightButton) {
+					gmouse.right = FALSE;
+				}
+			} else if (event.type == QEvent::MouseMove) {
+				gmouse.x = event.x;
+				gmouse.y = event.y;
+			}
+		}
+		qt.screen->events.mouse.clear();
+	}
+
+	qt.screen->events.mutex.unlock();
 }
 
 void gui_screen_update(void) {
@@ -425,7 +516,7 @@ uint32_t gui_color(BYTE a, BYTE r, BYTE g, BYTE b) {
 
 BYTE gui_load_lut(void *l, const uTCHAR *path) {
 	QImage tmp;
-	_lut *lut = (_lut*) l;
+	_lut *lut = (_lut *)l;
 
 	if (path && (ustrlen(path) > 0)) {
 		tmp = QImage(uQString(path));
@@ -503,8 +594,8 @@ int gui_utf_strcasecmp(uTCHAR *s0, uTCHAR *s1) {
 
 #if defined (__linux__)
 #include "os_linux.h"
-#elif defined (__OpenBSD__)
-#include "os_openbsd.h"
+#elif defined (__OpenBSD__) || defined (__FreeBSD__)
+#include "os_bsd.h"
 #elif defined (_WIN32)
 #include "os_windows.h"
 #endif

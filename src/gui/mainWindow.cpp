@@ -61,11 +61,12 @@ enum state_save_enum { SAVE, LOAD };
 mainWindow::mainWindow() : QMainWindow() {
 	setupUi(this);
 
-	position.setX(100);
-	position.setY(100);
+	geom.setX(100);
+	geom.setY(100);
 
 	screen = new wdgScreen(centralwidget);
 	statusbar = new wdgStatusBar(this);
+	toolbar = new wdgToolBar(this);
 	translator = new QTranslator();
 	qtTranslator = new QTranslator();
 	shcjoy.timer = new QTimer(this);
@@ -74,6 +75,10 @@ mainWindow::mainWindow() : QMainWindow() {
 	setWindowIcon(QIcon(":icon/icons/application.png"));
 	setWindowFlags(windowFlags() & ~Qt::WindowMaximizeButtonHint);
 	setStatusBar(statusbar);
+
+	toolbar->setObjectName(QString::fromUtf8("toolbar"));
+	toolbar->setWindowTitle(tr("Widgets"));
+	addToolBar(toolbar->area, toolbar);
 
 	// creo gli shortcuts
 	for (int i = 0; i < SET_MAX_NUM_SC; i++) {
@@ -231,8 +236,8 @@ void mainWindow::closeEvent(QCloseEvent *event) {
 	// ad un'altro, quindi salvo la posizione solo se sono sul monitor 0;
 	if (qApp->desktop()->screenNumber(this) == 0) {
 		if (cfg->fullscreen == NO_FULLSCR) {
-			cfg->last_pos.x = pos().x();
-			cfg->last_pos.y = pos().y();
+			cfg->last_pos.x = geometry().x();
+			cfg->last_pos.y = geometry().y();
 		}
 		cfg->last_pos_settings.x = dlgsettings->geom.x();
 		cfg->last_pos_settings.y = dlgsettings->geom.y();
@@ -259,6 +264,7 @@ void mainWindow::update_window(void) {
 	// State
 	update_menu_state();
 
+	toolbar->update_toolbar();
 	statusbar->update_statusbar();
 }
 void mainWindow::set_language(int lang) {
@@ -290,6 +296,10 @@ void mainWindow::set_language(int lang) {
 		case LNG_HUNGARIAN:
 			lng = "hu";
 			file = "hu_HU";
+			break;
+		case LNG_PORTUGUESEBR:
+			lng = "pt";
+			file = "pt_BR";
 			break;
 		case LNG_RUSSIAN:
 			lng = "ru";
@@ -367,6 +377,10 @@ void mainWindow::make_reset(int type) {
 		}
 	}
 
+	// nel caso il timer dell'update dello screen
+	// del fast forward sia attivo, lo fermo.
+	ff->stop();
+
 	if (emu_reset(type)) {
 		s_quit();
 	}
@@ -392,7 +406,7 @@ void mainWindow::state_save_slot_set(int slot, bool on_video) {
 	}
 	save_slot.slot = slot;
 	if (on_video == true) {
-		text_save_slot(SAVE_SLOT_INCDEC);
+		gui_overlay_enable_save_slot(SAVE_SLOT_INCDEC);
 	}
 }
 void mainWindow::shortcuts(void) {
@@ -460,6 +474,31 @@ bool mainWindow::is_rwnd_shortcut_or_not_shcut(const QKeyEvent *event) {
 	}
 
 	return (true);
+}
+void mainWindow::update_gfx_monitor_dimension(void) {
+	int screenNumber = qApp->desktop()->screenNumber(this);
+	QRect g;
+
+	if (gfx.type_of_fscreen_in_use == FULLSCR_IN_WINDOW) {
+		bool toolbar_is_hidden = toolbar->isHidden() | toolbar->isFloating();
+
+		g = QGuiApplication::screens().at(screenNumber)->availableGeometry();
+		gfx.w[MONITOR] = g.width() - (frameGeometry().width() - geometry().width());
+		gfx.h[MONITOR] = g.height() - (frameGeometry().height() - geometry().height());
+
+		if (toolbar->orientation() == Qt::Vertical) {
+			gfx.w[MONITOR] -= (toolbar_is_hidden ? 0 : toolbar->sizeHint().width());
+		} else {
+			gfx.h[MONITOR] -= (toolbar_is_hidden ? 0 : toolbar->sizeHint().height());
+		}
+
+		gfx.h[MONITOR] -= (menubar->isHidden() ? 0 : menubar->sizeHint().height());
+		gfx.h[MONITOR] -= (statusbar->isHidden() ? 0 : statusbar->sizeHint().height());
+	} else if (gfx.type_of_fscreen_in_use == FULLSCR) {
+		g = QGuiApplication::screens().at(screenNumber)->geometry();
+		gfx.w[MONITOR] = g.width();
+		gfx.h[MONITOR] = g.height();
+	}
 }
 
 void mainWindow::connect_menu_signals(void) {
@@ -795,22 +834,6 @@ void mainWindow::ctrl_disk_side(QAction *action) {
 		action->setChecked(true);
 	}
 }
-void mainWindow::update_gfx_monitor_dimension(void) {
-	int screenNumber = qApp->desktop()->screenNumber(this);
-	QRect g;
-
-	if (gfx.type_of_fscreen_in_use == FULLSCR_IN_WINDOW) {
-		g = QGuiApplication::screens().at(screenNumber)->availableGeometry();
-		gfx.w[MONITOR] = g.width() - (frameGeometry().width() - geometry().width());
-		gfx.h[MONITOR] = g.height() - (frameGeometry().height() - geometry().height()) -
-			(menubar->isHidden() ? 0 : menubar->sizeHint().height()) -
-			(statusbar->isHidden() ? 0 : statusbar->sizeHint().height());
-	} else if (gfx.type_of_fscreen_in_use == FULLSCR) {
-		g = QGuiApplication::screens().at(screenNumber)->geometry();
-		gfx.w[MONITOR] = g.width();
-		gfx.h[MONITOR] = g.height();
-	}
-}
 int mainWindow::is_shortcut(const QKeyEvent *event) {
 	int i;
 
@@ -840,7 +863,7 @@ void mainWindow::s_open(void) {
 	filters.append(tr("All files"));
 
 	if (l7z_present() == TRUE) {
-		if ((l7z_control_ext(uL("rar")) == EXIT_OK)) {
+		if ((l7z_control_ext(uL(".rar")) == EXIT_OK)) {
 			filters[0].append(" (*.zip *.ZIP *.7z *.7Z *.rar *.RAR *.nes *.NES *.unf *.UNF *.unif *.UNIF *.nsf *.NSF *.nsfe *.NSFE *.fds *.FDS *.fm2 *.FM2)");
 			filters[1].append(" (*.zip *.ZIP *.7z *.7Z *.rar *.RAR)");
 		} else {
@@ -885,7 +908,7 @@ void mainWindow::s_apply_patch(void) {
 	filters.append(tr("All files"));
 
 	if (l7z_present() == TRUE) {
-		if ((l7z_control_ext(uL("rar")) == EXIT_OK)) {
+		if ((l7z_control_ext(uL(".rar")) == EXIT_OK)) {
 			filters[0].append(" (*.zip *.ZIP *.7z *.7Z *.rar *.RAR *.ips *.IPS *.bps *.BPS *.xdelta *.XDELTA)");
 			filters[1].append(" (*.zip *.ZIP *.7z *.7Z *.rar *.RAR)");
 		} else {
@@ -1058,7 +1081,7 @@ void mainWindow::s_set_fullscreen(void) {
 
 	if ((cfg->fullscreen == NO_FULLSCR) || (cfg->fullscreen == NO_CHANGE)) {
 		gfx.scale_before_fscreen = cfg->scale;
-		position = pos();
+		geom = geometry();
 
 		if (cfg->fullscreen_in_window == TRUE) {
 			gfx.type_of_fscreen_in_use = FULLSCR_IN_WINDOW;
@@ -1072,6 +1095,7 @@ void mainWindow::s_set_fullscreen(void) {
 			update_gfx_monitor_dimension();
 			menuWidget()->setVisible(false);
 			statusbar->setVisible(false);
+			toolbar->set_hide_without_signal(false);
 			gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, FULLSCR, NO_CHANGE, FALSE, FALSE);
 
 			// su alcune macchine, il fullscreen non avviene perche'
@@ -1088,10 +1112,11 @@ void mainWindow::s_set_fullscreen(void) {
 
 			menuWidget()->setVisible(toggle_gui_in_window);
 			statusbar->setVisible(toggle_gui_in_window);
+			toolbar->set_hide_without_signal(toggle_gui_in_window);
 		}
 
+		setGeometry(geom);
 		gfx_set_screen(gfx.scale_before_fscreen, NO_CHANGE, NO_CHANGE, NO_FULLSCR, NO_CHANGE, FALSE, FALSE);
-		move(position);
 
 		gfx.type_of_fscreen_in_use = NO_FULLSCR;
 	}
@@ -1131,13 +1156,14 @@ void mainWindow::s_fast_forward(void) {
 	}
 }
 void mainWindow::s_toggle_gui_in_window(void) {
-	if(gfx.type_of_fscreen_in_use == FULLSCR) {
+	if (gfx.type_of_fscreen_in_use == FULLSCR) {
 		return;
 	}
 	emu_thread_pause();
 	toggle_gui_in_window = !toggle_gui_in_window;
 	menuWidget()->setVisible(toggle_gui_in_window);
 	statusbar->setVisible(toggle_gui_in_window);
+	toolbar->set_hide_without_signal(toggle_gui_in_window);
 	update_gfx_monitor_dimension();
 	gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, TRUE, FALSE);
 	emu_thread_continue();
@@ -1332,6 +1358,21 @@ void mainWindow::s_help(void) {
 }
 
 void mainWindow::s_ff_draw_screen(void) {
+	if (info.no_rom | info.turn_off | info.pause | rwnd.active) {
+		return;
+	}
+
+	switch (debugger.mode) {
+		case DBG_STEP:
+		case DBG_BREAKPOINT:
+			return;
+		case DBG_GO:
+			if (debugger.breakframe == TRUE) {
+				return;
+			}
+			break;
+	}
+
 	gfx_draw_screen();
 }
 void mainWindow::s_fullscreen(bool state) {
@@ -1511,50 +1552,50 @@ void mainWindow::s_shcut_save_settings(void) {
 }
 void mainWindow::s_shcut_rwnd_active_deactive_mode(void) {
 	if (rwnd.active == FALSE) {
-		statusbar->rewind->toolButton_Pause->click();
+		toolbar->rewind->toolButton_Pause->click();
 	} else {
-		statusbar->rewind->toolButton_Play->click();
+		toolbar->rewind->toolButton_Play->click();
 	}
 }
 void mainWindow::s_shcut_rwnd_step_backward(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	if (statusbar->rewind->step_timer_control()) {
-		statusbar->rewind->toolButton_Step_Backward->click();
+	if (toolbar->rewind->step_timer_control()) {
+		toolbar->rewind->toolButton_Step_Backward->click();
 	}
 }
 void mainWindow::s_shcut_rwnd_step_forward(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	if (statusbar->rewind->step_timer_control()) {
-		statusbar->rewind->toolButton_Step_Forward->click();
+	if (toolbar->rewind->step_timer_control()) {
+		toolbar->rewind->toolButton_Step_Forward->click();
 	}
 }
 void mainWindow::s_shcut_rwnd_fast_backward(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	statusbar->rewind->toolButton_Fast_Backward->click();
+	toolbar->rewind->toolButton_Fast_Backward->click();
 }
 void mainWindow::s_shcut_rwnd_fast_forward(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	statusbar->rewind->toolButton_Fast_Forward->click();
+	toolbar->rewind->toolButton_Fast_Forward->click();
 }
 void mainWindow::s_shcut_rwnd_play(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	statusbar->rewind->toolButton_Play->click();
+	toolbar->rewind->toolButton_Play->click();
 }
 void mainWindow::s_shcut_rwnd_pause(void) {
 	if (rwnd.active == FALSE) {
 		return;
 	}
-	statusbar->rewind->toolButton_Pause->click();
+	toolbar->rewind->toolButton_Pause->click();
 }
 
 void mainWindow::s_et_gg_reset(void) {

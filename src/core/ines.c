@@ -35,6 +35,8 @@
 void nes20_submapper(void);
 BYTE nes20_ram_size(BYTE mode);
 
+_ines ines;
+
 BYTE ines_load_rom(void) {
 	_rom_mem rom;
 	BYTE tmp;
@@ -74,7 +76,7 @@ BYTE ines_load_rom(void) {
 		rom.size = ftell(fp);
 		fseek(fp, 0L, SEEK_SET);
 
-		if ((rom.data = (BYTE *) malloc(rom.size)) == NULL) {
+		if ((rom.data = (BYTE *)malloc(rom.size)) == NULL) {
 			fclose(fp);
 			return (EXIT_ERROR);
 		}
@@ -248,10 +250,10 @@ BYTE ines_load_rom(void) {
 					vs_system.special_mode.r5e0x = NULL;
 					break;
 				case VS_SM_RBI_Baseball:
-					vs_system.special_mode.r5e0x = (BYTE *) &vs_protection_data[1][0];
+					vs_system.special_mode.r5e0x = (BYTE *)&vs_protection_data[1][0];
 					break;
 				case VS_SM_TKO_Boxing:
-					vs_system.special_mode.r5e0x = (BYTE *) &vs_protection_data[0][0];
+					vs_system.special_mode.r5e0x = (BYTE *)&vs_protection_data[0][0];
 					break;
 				case VS_SM_Super_Xevious:
 					vs_system.special_mode.r5e0x = NULL;

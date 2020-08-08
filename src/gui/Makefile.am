@@ -51,10 +51,14 @@ if WITH_OPENGL
 wdgOpenGL.moc: wdgOpenGL.hpp
 	$(MOC) $(srcdir)/wdgOpenGL.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 endif
+wdgOverlayUi.moc: wdgOverlayUi.hpp
+	$(MOC) $(srcdir)/wdgOverlayUi.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgPaletteEditor.moc: wdgPaletteEditor.hpp
 	$(MOC) $(srcdir)/wdgPaletteEditor.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgRewind.moc: wdgRewind.hpp
 	$(MOC) $(srcdir)/wdgRewind.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
+wdgRotateScreen.moc: wdgRotateScreen.hpp
+	$(MOC) $(srcdir)/wdgRotateScreen.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgSettingsAudio.moc: wdgSettingsAudio.hpp
 	$(MOC) $(srcdir)/wdgSettingsAudio.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgSettingsCheats.moc: wdgSettingsCheats.hpp
@@ -69,8 +73,12 @@ wdgSettingsVideo.moc: wdgSettingsVideo.hpp
 	$(MOC) $(srcdir)/wdgSettingsVideo.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgScreen.moc: wdgScreen.hpp
 	$(MOC) $(srcdir)/wdgScreen.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
+wdgState.moc: wdgState.hpp
+	$(MOC) $(srcdir)/wdgState.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 wdgStatusBar.moc: wdgStatusBar.hpp
 	$(MOC) $(srcdir)/wdgStatusBar.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
+wdgToolBar.moc: wdgToolBar.hpp
+	$(MOC) $(srcdir)/wdgToolBar.hpp $(MOCDEFINES) $(CUSTOMDEFINES) -o $@
 
 mainWindow.hh: designer/mainWindow.ui
 	$(UIC) $(srcdir)/designer/mainWindow.ui -o $@
@@ -86,10 +94,14 @@ wdgAPUChannels.hh: designer/wdgAPUChannels.ui
 	$(UIC) $(srcdir)/designer/wdgAPUChannels.ui -o $@
 wdgCheatsEditor.hh: designer/wdgCheatsEditor.ui
 	$(UIC) $(srcdir)/designer/wdgCheatsEditor.ui -o $@
+wdgOverlayUi.hh: designer/wdgOverlayUi.ui
+	$(UIC) $(srcdir)/designer/wdgOverlayUi.ui -o $@
 wdgPaletteEditor.hh: designer/wdgPaletteEditor.ui
 	$(UIC) $(srcdir)/designer/wdgPaletteEditor.ui -o $@
 wdgRewind.hh: designer/wdgRewind.ui
 	$(UIC) $(srcdir)/designer/wdgRewind.ui -o $@
+wdgRotateScreen.hh: designer/wdgRotateScreen.ui
+	$(UIC) $(srcdir)/designer/wdgRotateScreen.ui -o $@
 wdgSettingsAudio.hh: designer/wdgSettingsAudio.ui
 	$(UIC) $(srcdir)/designer/wdgSettingsAudio.ui -o $@
 wdgSettingsCheats.hh: designer/wdgSettingsCheats.ui
@@ -102,6 +114,8 @@ wdgSettingsPPU.hh: designer/wdgSettingsPPU.ui
 	$(UIC) $(srcdir)/designer/wdgSettingsPPU.ui -o $@
 wdgSettingsVideo.hh: designer/wdgSettingsVideo.ui
 	$(UIC) $(srcdir)/designer/wdgSettingsVideo.ui -o $@
+wdgState.hh: designer/wdgState.ui
+	$(UIC) $(srcdir)/designer/wdgState.ui -o $@
 
 $(srcdir)/designer/translations/en_EN.qm: designer/translations/en_EN.ts
 	$(LRELEASE) -silent $(srcdir)/designer/translations/en_EN.ts -qm $@
@@ -123,6 +137,10 @@ $(srcdir)/designer/translations/ru_RU.qm: designer/translations/ru_RU.ts
 	$(LRELEASE) -silent $(srcdir)/designer/translations/ru_RU.ts -qm $@
 $(srcdir)/designer/translations/qt_ru.qm: designer/translations/qt_ru.ts
 	$(LRELEASE) -silent $(srcdir)/designer/translations/qt_ru.ts -qm $@
+$(srcdir)/designer/translations/pt_BR.qm: designer/translations/pt_BR.ts
+	$(LRELEASE) -silent $(srcdir)/designer/translations/pt_BR.ts -qm $@
+$(srcdir)/designer/translations/qt_pt.qm: designer/translations/qt_pt.ts
+	$(LRELEASE) -silent $(srcdir)/designer/translations/qt_pt.ts -qm $@
 
 clean-local:
 	rm -f resources.cpp *.{hh,moc} $(srcdir)/designer/translations/*.qm
@@ -137,7 +155,9 @@ TRADUCTION_QM = \
 	$(srcdir)/designer/translations/hu_HU.qm \
 	$(srcdir)/designer/translations/qt_hu.qm \
 	$(srcdir)/designer/translations/ru_RU.qm \
-	$(srcdir)/designer/translations/qt_ru.qm
+	$(srcdir)/designer/translations/qt_ru.qm \
+	$(srcdir)/designer/translations/pt_BR.qm \
+	$(srcdir)/designer/translations/qt_pt.qm
 
 BUILT_SOURCES = \
 	resources.cpp
@@ -152,8 +172,10 @@ BUILT_SOURCES += \
 	objSettings.moc \
 	wdgAPUChannels.moc \
 	wdgCheatsEditor.moc \
+	wdgOverlayUi.moc \
 	wdgPaletteEditor.moc \
 	wdgRewind.moc \
+	wdgRotateScreen.moc \
 	wdgSettingsAudio.moc \
 	wdgSettingsCheats.moc \
 	wdgSettingsGeneral.moc \
@@ -161,7 +183,9 @@ BUILT_SOURCES += \
 	wdgSettingsPPU.moc \
 	wdgSettingsVideo.moc \
 	wdgScreen.moc \
-	wdgStatusBar.moc
+	wdgState.moc \
+	wdgStatusBar.moc \
+	wdgToolBar.moc
 
 BUILT_SOURCES += \
 	mainWindow.hh \
@@ -171,14 +195,17 @@ BUILT_SOURCES += \
 	dlgVsSystem.hh \
 	wdgAPUChannels.hh \
 	wdgCheatsEditor.hh \
+	wdgOverlayUi.hh \
 	wdgPaletteEditor.hh \
 	wdgRewind.hh \
+	wdgRotateScreen.hh \
 	wdgSettingsAudio.hh \
 	wdgSettingsCheats.hh \
 	wdgSettingsGeneral.hh \
 	wdgSettingsInput.hh \
 	wdgSettingsPPU.hh \
-	wdgSettingsVideo.hh
+	wdgSettingsVideo.hh \
+	wdgState.hh
 
 noinst_LIBRARIES = libgui.a
 libgui_a_SOURCES = \
@@ -212,10 +239,14 @@ libgui_a_SOURCES = \
 	wdgAPUChannels.hpp \
 	wdgCheatsEditor.cpp \
 	wdgCheatsEditor.hpp \
+	wdgOverlayUi.cpp \
+	wdgOverlayUi.hpp \
 	wdgPaletteEditor.cpp \
 	wdgPaletteEditor.hpp \
 	wdgRewind.cpp \
 	wdgRewind.hpp \
+	wdgRotateScreen.cpp \
+	wdgRotateScreen.hpp \
 	wdgSettingsAudio.cpp \
 	wdgSettingsAudio.hpp \
 	wdgSettingsCheats.cpp \
@@ -230,8 +261,12 @@ libgui_a_SOURCES = \
 	wdgSettingsVideo.hpp \
 	wdgScreen.cpp \
 	wdgScreen.hpp \
+	wdgState.cpp \
+	wdgState.hpp \
 	wdgStatusBar.cpp \
-	wdgStatusBar.hpp
+	wdgStatusBar.hpp \
+	wdgToolBar.cpp \
+	wdgToolBar.hpp
 
 if WITH_OPENGL
 BUILT_SOURCES += \
@@ -257,11 +292,11 @@ libgui_a_SOURCES += \
 AM_CXXFLAGS = -fPIC
 endif
 
-if OPENBSD
+if BSD
 libgui_a_SOURCES += \
-	openbsd/jstick.c \
-	openbsd/jstick.h \
-	openbsd/os_openbsd.h
+	bsd/jstick.c \
+	bsd/jstick.h \
+	bsd/os_bsd.h
 
 AM_CXXFLAGS = -fPIC
 endif

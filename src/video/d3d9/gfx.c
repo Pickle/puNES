@@ -21,9 +21,7 @@
 
 #include "d3d9.h"
 #include "video/gfx_thread.h"
-#include "fps.h"
 #include "gui.h"
-#include "info.h"
 #include "conf.h"
 #include "ppu.h"
 #include "clock.h"
@@ -33,6 +31,8 @@
 #include "settings.h"
 #include "video/effects/pause.h"
 #include "video/effects/tv_noise.h"
+
+_gfx gfx;
 
 BYTE gfx_init(void) {
 	gfx.screenshot.save = FALSE;
@@ -100,7 +100,6 @@ void gfx_quit(void) {
 	tv_noise_quit();
 
 	ntsc_quit();
-	text_quit();
 
 	if (gfx.palette) {
 		free(gfx.palette);
@@ -109,17 +108,14 @@ void gfx_quit(void) {
 
 	d3d9_quit();
 }
-void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette,
-	BYTE force_scale, BYTE force_palette) {
+void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette, BYTE force_scale, BYTE force_palette) {
 	BYTE set_mode;
 	WORD width, height;
 	DBWORD old_shader = cfg->shader;
 
 	gfx_thread_pause();
 
-	if (shader_effect.params > 0) {
-		settings_shp_save();
-	}
+	settings_shp_save();
 
 	gfx_set_screen_start:
 	set_mode = FALSE;
@@ -263,7 +259,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 			if (ustrlen(cfg->palette_file) != 0) {
 				if (palette_load_from_file(cfg->palette_file) == EXIT_ERROR) {
 					umemset(cfg->palette_file, 0x00, usizeof(cfg->palette_file));
-					text_add_line_info(1, "[red]error on palette file");
+					gui_overlay_info_append_msg_precompiled(26, NULL);
 					if (cfg->palette != PALETTE_FILE) {
 						palette = cfg->palette;
 					} else if (machine.type == NTSC) {
@@ -377,9 +373,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 			goto gfx_set_screen_start;
 		}
 
-		if (shader_effect.params > 0) {
-			settings_shp_parse();
-		}
+		settings_shp_parse();
 
 		if (set_mode) {
 			if (fullscreen == TRUE) {
@@ -417,7 +411,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 				gfx_thread_continue();
 				return;
 			case EXIT_ERROR_SHADER:
-				text_add_line_info(1, "[red]errors[normal] on shader, use [green]'No shader'");
+				gui_overlay_info_append_msg_precompiled(27, NULL);
 				fprintf(stderr, "CG: Error on loading the shaders, switch to \"No shader\"\n");
 				umemcpy(cfg->shader_file, gfx.last_shader_file, usizeof(cfg->shader_file));
 				shader = NO_SHADER;
@@ -453,13 +447,11 @@ void gfx_draw_screen(void) {
 	}
 
 	screen.rd = screen.wr;
+	screen.last_completed_wr = screen.wr;
 
 	if (info.doublebuffer == TRUE) {
 		screen.index = !screen.index;
-		screen.last_completed_wr = screen.wr;
 		screen.wr = &screen.buff[screen.index];
-	} else {
-		screen.rd = screen.wr = screen.last_completed_wr;
 	}
 
 	if (screen.rd->ready == FALSE) {
@@ -525,87 +517,22 @@ void gfx_cursor_set(void) {
 	gui_cursor_set();
 };
 
-void gfx_text_create_surface(_txt_element *ele) {
-	size_t size = (ele->h * ele->w) * (gfx.bit_per_pixel / 8);
-
-	ele->surface = malloc(size);
-	memset(ele->surface, 0x00, size);
-}
-void gfx_text_release_surface(_txt_element *ele) {
-	if (ele->surface) {
-		free(ele->surface);
-		ele->surface = NULL;
-	}
-}
-void gfx_text_rect_fill(_txt_element *ele, _txt_rect *rect, uint32_t color) {
-	uint32_t *pbits;
-	LONG pitch;
-	int w, h;
-
-	pitch = ele->w;
-	pbits = (uint32_t *)ele->surface;
-	pbits += (rect->y * ele->w) + rect->x;
-
-	for (h = 0; h < rect->h; h++) {
-		for (w = 0; w < rect->w; w++) {
-			(*(pbits + w)) = color;
-		}
-		pbits += pitch;
-	}
-}
-void gfx_text_reset(void) {
-	txt_table[TXT_NORMAL] = D3DCOLOR_ARGB(0, 0xFF, 0xFF, 0xFF);
-	txt_table[TXT_RED]    = D3DCOLOR_ARGB(0, 0xFF, 0x4C, 0x3E);
-	txt_table[TXT_YELLOW] = D3DCOLOR_ARGB(0, 0xFF, 0xFF, 0   );
-	txt_table[TXT_GREEN]  = D3DCOLOR_ARGB(0, 0   , 0xFF, 0   );
-	txt_table[TXT_CYAN]   = D3DCOLOR_ARGB(0, 0   , 0xFF, 0xFF);
-	txt_table[TXT_BROWN]  = D3DCOLOR_ARGB(0, 0xEB, 0x89, 0x31);
-	txt_table[TXT_BLUE]   = D3DCOLOR_ARGB(0, 0x2D, 0x8D, 0xBD);
-	txt_table[TXT_GRAY]   = D3DCOLOR_ARGB(0, 0xA0, 0xA0, 0xA0);
-	txt_table[TXT_BLACK]  = D3DCOLOR_ARGB(0, 0   , 0   , 0   );
-}
-void gfx_text_clear(_txt_element *ele) {
-	D3DLOCKED_RECT lock_dst;
-	RECT dst;
-	uint32_t *pbits;
-	int w, h, x, y;
-
-	if (!d3d9.text.data) {
-		return;
-	}
-
-	text_calculate_real_x_y(ele, &x, &y);
-
-	dst.left = x;
-	dst.top = y;
-	dst.right = x + ele->w;
-	dst.bottom = y + ele->h;
-
-	if (IDirect3DSurface9_LockRect(d3d9.text.offscreen, &lock_dst, &dst, D3DLOCK_DISCARD) != D3D_OK) {
-		printf("D3D9 : LockRect text surface error\n");
-		return;
-	}
-
-	pbits = (uint32_t *)lock_dst.pBits;
-
-	for (h = 0; h < ele->h; h++) {
-		for (w = 0; w < ele->w; w++) {
-			(*(pbits + w)) = 0;
-		}
-		pbits += lock_dst.Pitch / (gfx.bit_per_pixel / 8);
-	}
-
-	IDirect3DSurface9_UnlockRect(d3d9.text.offscreen);
-}
-void gfx_text_blit(_txt_element *ele, _txt_rect *rect) {
+void gfx_overlay_blit(void *surface, _gfx_rect *rect) {
 	D3DLOCKED_RECT lock_dst;
 	RECT dst;
 	LONG pitch;
 	unsigned char *psrc, *pdst;
 	int h;
 
-	if (!cfg->txt_on_screen) {
+	if (cfg->txt_on_screen == FALSE) {
 		return;
+	}
+
+	if (gfx.device_pixel_ratio != 1.0f) {
+		rect->x = round(rect->x * gfx.device_pixel_ratio);
+		rect->y = round(rect->y * gfx.device_pixel_ratio);
+		rect->w = round(rect->w * gfx.device_pixel_ratio);
+		rect->h = round(rect->h * gfx.device_pixel_ratio);
 	}
 
 	dst.left = rect->x;
@@ -613,22 +540,23 @@ void gfx_text_blit(_txt_element *ele, _txt_rect *rect) {
 	dst.right = rect->x + rect->w;
 	dst.bottom = rect->y + rect->h;
 
-	if (IDirect3DSurface9_LockRect(d3d9.text.offscreen, &lock_dst, &dst, D3DLOCK_DISCARD) != D3D_OK) {
-		printf("D3D9 : LockRect text surface error\n");
+	if (IDirect3DSurface9_LockRect(d3d9.overlay.map0, &lock_dst, &dst, D3DLOCK_NO_DIRTY_UPDATE) != D3D_OK) {
+		printf("D3D9 : LockRect overlay surface error\n");
 		return;
 	}
 
-	pitch = rect->w * (gfx.bit_per_pixel / 8);
-	psrc = (unsigned char *)ele->surface;
+	pitch = rect->w * (float)(gfx.bit_per_pixel / 8);
+	psrc = (unsigned char *)surface;
 	pdst = (unsigned char *)lock_dst.pBits;
 
-	for (h = 0; h < rect->h; h++) {
+	for (h = rect->h; h > 0; h--) {
 		memcpy(pdst, psrc, pitch);
 		psrc += pitch;
 		pdst += lock_dst.Pitch;
 	}
 
-	IDirect3DSurface9_UnlockRect(d3d9.text.offscreen);
+	IDirect3DSurface9_UnlockRect(d3d9.overlay.map0);
+	IDirect3DTexture9_AddDirtyRect(d3d9.overlay.data, &dst);
 }
 
 void gfx_apply_filter(void) {
@@ -658,40 +586,41 @@ void gfx_apply_filter(void) {
 
 	{
 		const _texture_simple *scrtex = &d3d9.screen.tex[d3d9.screen.index];
-		D3DLOCKED_RECT lrect;
 
-		// lock della surface in memoria
-		IDirect3DSurface9_LockRect(scrtex->offscreen, &lrect, NULL, D3DLOCK_DISCARD);
-		// applico l'effetto
-		gfx.filter.data.pitch = lrect.Pitch;
-		gfx.filter.data.pix = lrect.pBits;
-		gfx.filter.data.width = scrtex->rect.base.w;
-		gfx.filter.data.height = scrtex->rect.base.h;
-		gfx.filter.func();
-		// unlock della surface in memoria
-		IDirect3DSurface9_UnlockRect(scrtex->offscreen);
+		if (scrtex->offscreen) {
+			D3DLOCKED_RECT lrect;
 
-		// aggiorno la texture dello schermo
-		if (overscan.enabled) {
-			POINT point;
-			RECT rect;
+			// lock della surface in memoria
+			IDirect3DSurface9_LockRect(scrtex->offscreen, &lrect, NULL, D3DLOCK_DISCARD);
+			// applico l'effetto
+			gfx.filter.data.pitch = lrect.Pitch;
+			gfx.filter.data.pix = lrect.pBits;
+			gfx.filter.data.width = scrtex->rect.base.w;
+			gfx.filter.data.height = scrtex->rect.base.h;
+			gfx.filter.func();
+			// unlock della surface in memoria
+			IDirect3DSurface9_UnlockRect(scrtex->offscreen);
 
-			rect.left = overscan.borders->left * gfx.filter.width_pixel;
-			rect.top = overscan.borders->up * gfx.filter.factor;
-			rect.right = scrtex->rect.base.w - (overscan.borders->right * gfx.filter.width_pixel);
-			rect.bottom = scrtex->rect.base.h - (overscan.borders->down * gfx.filter.factor);
+			// aggiorno la texture dello schermo
+			if (overscan.enabled) {
+				POINT point;
+				RECT rect;
 
-			point.x = rect.left;
-			point.y = rect.top;
+				rect.left = overscan.borders->left * gfx.filter.width_pixel;
+				rect.top = overscan.borders->up * gfx.filter.factor;
+				rect.right = scrtex->rect.base.w - (overscan.borders->right * gfx.filter.width_pixel);
+				rect.bottom = scrtex->rect.base.h - (overscan.borders->down * gfx.filter.factor);
 
-			IDirect3DDevice9_UpdateSurface(d3d9.adapter->dev, scrtex->offscreen, &rect, scrtex->map0, &point);
-		} else {
-			IDirect3DDevice9_UpdateSurface(d3d9.adapter->dev, scrtex->offscreen, NULL, scrtex->map0, NULL);
+				point.x = rect.left;
+				point.y = rect.top;
+
+				IDirect3DDevice9_UpdateSurface(d3d9.adapter->dev, scrtex->offscreen, &rect, scrtex->map0, &point);
+			} else {
+				IDirect3DDevice9_UpdateSurface(d3d9.adapter->dev, scrtex->offscreen, NULL, scrtex->map0, NULL);
+			}
 		}
 	}
 
 	gfx_thread_unlock();
 	gui_screen_update();
-
-	return;
 }

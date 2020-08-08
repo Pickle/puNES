@@ -34,6 +34,7 @@
 #include "common.h"
 #include "video/gfx.h"
 
+<<<<<<< HEAD
 #if defined (WITH_OPENGLES)
 #ifndef GL_BGRA
     #ifdef GL_BGRA_EXT
@@ -45,6 +46,17 @@
 
 #define GL_CLAMP_TO_BORDER      GL_CLAMP_TO_EDGE
 #endif
+=======
+enum _opengl_texture_format {
+	TI_INTFRM = GL_RGBA8,
+	TI_FRM = GL_BGRA,
+	TI_TYPE = GL_UNSIGNED_BYTE,
+	TI_F_INTFRM = GL_RGBA32F,
+	TI_F_TYPE = GL_FLOAT,
+	TI_S_INTFRM = GL_SRGB8_ALPHA8,
+	TI_S_TYPE = GL_UNSIGNED_BYTE
+};
+>>>>>>> ca4ffb49c03167bdc8ad8a7a8927a8507e677835
 
 #if defined (WITH_OPENGL_CG)
 typedef struct _shader_prg_cg {
@@ -190,11 +202,15 @@ typedef struct _texture_simple {
 } _texture_simple;
 typedef struct _opengl {
 	_math_matrix_4x4 mvp;
-	_texture_simple text;
+	_texture_simple overlay;
 	_texture texture[MAX_PASS + 1];
 	_lut lut[MAX_PASS];
 
-	struct _attribsarray {
+	struct _opengl_video_mode {
+		GLuint w;
+		GLuint h;
+	} video_mode;
+	struct _attribs_array {
 		GLuint count;
 		GLuint attrib[MAX_PASS + MAX_PREV + 1 + 1 + 4 + 4];
 	} attribs;
@@ -237,6 +253,7 @@ typedef struct _opengl {
 #endif
 } _opengl;
 
+<<<<<<< HEAD
 #if defined (WITH_OPENGLES)
 enum _opengl_texture_format {
 	TI_INTFRM = GL_BGRA,
@@ -254,14 +271,15 @@ enum _opengl_texture_format {
 	TI_S_TYPE = GL_UNSIGNED_BYTE
 };
 #endif
+=======
+extern _opengl opengl;
+>>>>>>> ca4ffb49c03167bdc8ad8a7a8927a8507e677835
 
 #if defined (__cplusplus)
 #define EXTERNC extern "C"
 #else
 #define EXTERNC
 #endif
-
-EXTERNC _opengl opengl;
 
 EXTERNC BYTE opengl_init(void);
 EXTERNC void opengl_quit(void);

@@ -108,7 +108,7 @@ AS_CASE(["$host_os"],
 		CUSTOMDEFINES="${CUSTOMDEFINES}"
 		my_CPPFLAGS="${my_CPPFLAGS} -I${TOP_SRCDIR}/src/gui/linux -I${TOP_SRCDIR}/src/video/opengl"
 		linux=yes
-		openbsd=no
+		bsd=no
 		windows=no
 		with_d3d9=no
 		with_opengl=yes
@@ -121,12 +121,27 @@ AS_CASE(["$host_os"],
 			CUSTOMDEFINES="${CUSTOMDEFINES} -DWITH_OPENGL -DWITH_OPENGLES -DGL_ES"
 		])
 	],
+	[freebsd*], [
+		LDFLAGS="${LDFLAGS} -L/usr/local/lib"
+		MOCDEFINES="${MOCDEFINES} -D__FreeBSD__"
+		CUSTOMDEFINES="${CUSTOMDEFINES} -DWITH_OPENGL -DGLEW_STATIC"
+		my_CPPFLAGS="${my_CPPFLAGS} -I${TOP_SRCDIR}/src/gui/bsd -I${TOP_SRCDIR}/src/video/opengl"
+		linux=no
+		bsd=yes
+		windows=no
+		with_d3d9=no
+		with_opengl=yes
+		my_CXXFLAGS=""
+		export CC
+		export CXX
+	],
 	[openbsd*], [
+		LDFLAGS="${LDFLAGS} -L/usr/local/lib"
 		MOCDEFINES="${MOCDEFINES} -D__OpenBSD__"
 		CUSTOMDEFINES="${CUSTOMDEFINES} -DWITH_OPENGL"
-		my_CPPFLAGS="${my_CPPFLAGS} -I${TOP_SRCDIR}/src/gui/openbsd -I${TOP_SRCDIR}/src/video/opengl"
+		my_CPPFLAGS="${my_CPPFLAGS} -I${TOP_SRCDIR}/src/gui/bsd -I${TOP_SRCDIR}/src/video/opengl"
 		linux=no
-		openbsd=yes
+		bsd=yes
 		windows=no
 		with_d3d9=no
 		with_opengl=yes
@@ -142,7 +157,7 @@ AS_CASE(["$host_os"],
 		MOCDEFINES="${MOCDEFINES} -D_WIN32"
 		my_CPPFLAGS="${my_CPPFLAGS} -I${TOP_SRCDIR}/src/gui/windows"
 		linux=no
-		openbsd=no
+		bsd=no
 		windows=yes
 
 		AS_IF([test "x$with_glew" = xyes], [
@@ -173,7 +188,7 @@ AS_CASE(["$host_os"],
 )
 
 AM_CONDITIONAL(LINUX,[test "x$linux" = xyes])
-AM_CONDITIONAL(OPENBSD,[test "x$openbsd" = xyes])
+AM_CONDITIONAL(BSD,[test "x$bsd" = xyes])
 AM_CONDITIONAL(WINDOWS,[test "x$windows" = xyes])
 AM_CONDITIONAL(ENAB_RELEASE,[test "x$enable_release" = xyes])
 AM_CONDITIONAL(WITH_D3D9,[test "x$with_d3d9" = xyes])
@@ -701,10 +716,12 @@ AS_IF([test "x$LRELEASE" = xno], [
 	AC_MSG_ERROR([Could not find lrelease binaries])
 ])
 
+# OpenGL
 AM_COND_IF([WINDOWS], [
 	my_LIBS="${my_LIBS} -lopengl32"
 ])
 
+# NVidia CG toolkit
 AM_COND_IF([LINUX], [
     AM_COND_IF([WITH_OPENGLES], [
             PKG_CHECK_MODULES(GLESV2, [glesv2], [
@@ -748,7 +765,7 @@ void blah(){
 	my_LIBS="${my_LIBS} ${alsa_LIBS}"
 ])
 
-AM_COND_IF([OPENBSD], [
+AM_COND_IF([BSD], [
 	PKG_CHECK_MODULES(GL, [gl], [
 		my_CPPFLAGS="${my_CPPFLAGS} ${GL_CFLAGS}"
 		my_LIBS="${my_LIBS} ${GL_LIBS}"
@@ -785,6 +802,7 @@ void blah(){
 	])
 ])
 
+# BSD gamepads
 AS_CASE(["$host_os"],
 	[*bsd*], [
 		AC_CHECK_LIB(usbhid, hid_init, have_libusbhid=yes)
@@ -914,6 +932,7 @@ AS_CASE(["$host_os"],
 	]
 )
 
+# windres
 AS_CASE(["$host_os"],
 	[mingw32*|msys], [
 		AC_CHECK_TOOL(WINDRES, windres, [no])
@@ -924,21 +943,18 @@ AS_CASE(["$host_os"],
 AM_CONDITIONAL(HAVE_WINDRES, [test x$WINDRES != xno])
 AC_SUBST(WINDRES)
 
+# lib7zip
 LIB7ZIP_SRC="lib7zip-1.6.5"
 LIB7ZIP_P7ZIP="p7zip_9.20.1"
 LIB7ZIP_7Z="7z922"
-AM_COND_IF([COMPILE_LIB7ZIP], [
-	AM_COND_IF([WINDOWS], [
-		export P7ZIP_SOURCE_DIR="${TOP_SRCDIR}/src/extra/${LIB7ZIP_7Z}"
-	], [
-		export P7ZIP_SOURCE_DIR="${TOP_SRCDIR}/src/extra/${LIB7ZIP_P7ZIP}"
-	])
-	#AC_CONFIG_COMMANDS_PRE([])
-	AC_CONFIG_SUBDIRS([src/extra/lib7zip-1.6.5])
-	LIB7ZIP_LIBS="${TOP_BUILDDIR}src/extra/${LIB7ZIP_SRC}/Lib7Zip/lib7zip.a"
+AM_COND_IF([WINDOWS], [
+	export P7ZIP_SOURCE_DIR="${TOP_SRCDIR}/src/extra/${LIB7ZIP_7Z}"
 ], [
-	LIB7ZIP_LIBS="${path_7zip_lib}/lib7zip.a"
+	export P7ZIP_SOURCE_DIR="${TOP_SRCDIR}/src/extra/${LIB7ZIP_P7ZIP}"
 ])
+#AC_CONFIG_COMMANDS_PRE([])
+AC_CONFIG_SUBDIRS([src/extra/lib7zip-1.6.5])
+LIB7ZIP_LIBS="${TOP_BUILDDIR}src/extra/${LIB7ZIP_SRC}/Lib7Zip/lib7zip.a"
 AC_SUBST(LIB7ZIP_SRC)
 AC_SUBST(LIB7ZIP_LIBS)
 
@@ -948,8 +964,8 @@ AC_CONFIG_SUBDIRS([src/extra/xdelta-3.1.0])
 AM_COND_IF([LINUX], [
 	my_LIBS="${my_LIBS} -ldl -lpthread"
 ])
-AM_COND_IF([OPENBSD], [
-	my_LIBS="${my_LIBS} -L/usr/local/lib -lstdc++ -lpthread"
+AM_COND_IF([BSD], [
+	my_LIBS="${my_LIBS} -lc++ -lpthread"
 ])
 AM_COND_IF([WINDOWS], [
 	AM_COND_IF([ENAB_RELEASE], [

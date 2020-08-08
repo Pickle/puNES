@@ -22,12 +22,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "video/gfx.h"
+#include "opengl.h"
 #include "video/gfx_thread.h"
-#include "fps.h"
 #include "info.h"
 #include "conf.h"
-#include "opengl.h"
 #include "clock.h"
 #include "ppu.h"
 #include "gui.h"
@@ -37,6 +35,8 @@
 #include "settings.h"
 #include "video/effects/pause.h"
 #include "video/effects/tv_noise.h"
+
+_gfx gfx;
 
 BYTE gfx_init(void) {
 	gfx.screenshot.save = FALSE;
@@ -67,7 +67,7 @@ BYTE gfx_init(void) {
 
 	// mi alloco una zona di memoria dove conservare la
 	// paletta nel formato di visualizzazione.
-	if (!(gfx.palette = (uint32_t *) malloc(NUM_COLORS * sizeof(uint32_t)))) {
+	if (!(gfx.palette = (uint32_t *)malloc(NUM_COLORS * sizeof(uint32_t)))) {
 		fprintf(stderr, "Unable to allocate the palette\n");
 		return (EXIT_ERROR);
 	}
@@ -111,19 +111,15 @@ void gfx_quit(void) {
 
 	opengl_quit();
 	ntsc_quit();
-	text_quit();
 }
-void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette,
-	BYTE force_scale, BYTE force_palette) {
+void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette, BYTE force_scale, BYTE force_palette) {
 	BYTE set_mode;
 	WORD width, height;
 	DBWORD old_shader = cfg->shader;
 
 	gfx_thread_pause();
 
-	if (shader_effect.params > 0) {
-		settings_shp_save();
-	}
+	settings_shp_save();
 
 	gfx_set_screen_start:
 	set_mode = FALSE;
@@ -265,7 +261,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 			if (ustrlen(cfg->palette_file) != 0) {
 				if (palette_load_from_file(cfg->palette_file) == EXIT_ERROR) {
 					umemset(cfg->palette_file, 0x00, usizeof(cfg->palette_file));
-					text_add_line_info(1, "[red]error on palette file");
+					gui_overlay_info_append_msg_precompiled(26, NULL);
 					if (cfg->palette != PALETTE_FILE) {
 						palette = cfg->palette;
 					} else if (machine.type == NTSC) {
@@ -379,9 +375,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 			goto gfx_set_screen_start;
 		}
 
-		if (shader_effect.params > 0) {
-			settings_shp_parse();
-		}
+		settings_shp_parse();
 
 		if (set_mode) {
 			if (fullscreen == TRUE) {
@@ -418,7 +412,7 @@ void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, B
 				fprintf(stderr, "OPENGL: Unable to initialize opengl context\n");
 				break;
 			case EXIT_ERROR_SHADER:
-				text_add_line_info(1, "[red]errors[normal] on shader, use [green]'No shader'");
+				gui_overlay_info_append_msg_precompiled(27, NULL);
 				fprintf(stderr, "OPENGL: Error on loading the shaders, switch to \"No shader\"\n");
 				umemcpy(cfg->shader_file, gfx.last_shader_file, usizeof(cfg->shader_file));
 				shader = NO_SHADER;
@@ -455,13 +449,11 @@ void gfx_draw_screen(void) {
 	}
 
 	screen.rd = screen.wr;
+	screen.last_completed_wr = screen.wr;
 
 	if (info.doublebuffer == TRUE) {
 		screen.index = !screen.index;
-		screen.last_completed_wr = screen.wr;
 		screen.wr = &screen.buff[screen.index];
-	} else {
-		screen.rd = screen.wr = screen.last_completed_wr;
 	}
 
 	if (screen.rd->ready == FALSE) {
@@ -498,59 +490,12 @@ void gfx_cursor_set(void) {
 	gui_cursor_set();
 }
 
-void gfx_text_create_surface(_txt_element *ele) {
-	uint32_t size = (ele->h * ele->w) * sizeof(uint32_t);
-
-	ele->surface = malloc(size);
-	memset(ele->surface, 0x00, size);
-
-	ele->blank = malloc(size);
-	memset(ele->blank, 0x00, size);
-}
-void gfx_text_release_surface(_txt_element *ele) {
-	if (ele->surface) {
-		free(ele->surface);
-		ele->surface = NULL;
-	}
-	if (ele->blank) {
-		free(ele->blank);
-		ele->blank = NULL;
-	}
-}
-void gfx_text_rect_fill(_txt_element *ele, _txt_rect *rect, uint32_t color) {
-	uint32_t *pbits;
-	uint32_t pitch;
-	int w, h;
-
-	pitch = ele->w;
-	pbits = (uint32_t *)ele->surface;
-	pbits += (rect->y * ele->w) + rect->x;
-
-	for (h = 0; h < rect->h; h++) {
-		for (w = 0; w < rect->w; w++) {
-			(*(pbits + w)) = color;
-		}
-		pbits += pitch;
-	}
-}
-void gfx_text_reset(void) {
-	txt_table[TXT_NORMAL] = gfx_color(0, 0xFF, 0xFF, 0xFF);
-	txt_table[TXT_RED]    = gfx_color(0, 0xFF, 0x4C, 0x3E);
-	txt_table[TXT_YELLOW] = gfx_color(0, 0xFF, 0xFF, 0   );
-	txt_table[TXT_GREEN]  = gfx_color(0, 0   , 0xFF, 0   );
-	txt_table[TXT_CYAN]   = gfx_color(0, 0   , 0xFF, 0xFF);
-	txt_table[TXT_BROWN]  = gfx_color(0, 0xEB, 0x89, 0x31);
-	txt_table[TXT_BLUE]   = gfx_color(0, 0x2D, 0x8D, 0xBD);
-	txt_table[TXT_GRAY]   = gfx_color(0, 0xA0, 0xA0, 0xA0);
-	txt_table[TXT_BLACK]  = gfx_color(0, 0   , 0   , 0   );
-}
-void gfx_text_clear(_txt_element *ele) {
-	int x, y;
-
-	if (!ele->blank) {
+void gfx_overlay_blit(void *surface, _gfx_rect *rect) {
+	if (!cfg->txt_on_screen) {
 		return;
 	}
 
+<<<<<<< HEAD
 	text_calculate_real_x_y(ele, &x, &y);
 
 	glBindTexture(GL_TEXTURE_2D, opengl.text.id);
@@ -575,6 +520,19 @@ void gfx_text_blit(_txt_element *ele, _txt_rect *rect) {
 #if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 #endif
+=======
+	if (gfx.device_pixel_ratio != 1.0f) {
+		rect->x *= gfx.device_pixel_ratio;
+		rect->y *= gfx.device_pixel_ratio;
+		rect->w *= gfx.device_pixel_ratio;
+		rect->h *= gfx.device_pixel_ratio;
+	}
+
+	glBindTexture(GL_TEXTURE_2D, opengl.overlay.id);
+	glPixelStoref(GL_UNPACK_ROW_LENGTH, rect->w);
+	glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, TI_FRM, TI_TYPE, surface);
+	glPixelStoref(GL_UNPACK_ROW_LENGTH, 0);
+>>>>>>> ca4ffb49c03167bdc8ad8a7a8927a8507e677835
 }
 
 void gfx_apply_filter(void) {

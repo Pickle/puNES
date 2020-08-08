@@ -16,50 +16,39 @@
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
 
-#include <time.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <libgen.h>
+#include <time.h>
 #include "main.h"
 #include "debugger.h"
 #include "emu.h"
 #include "rom_mem.h"
-#include "info.h"
 #include "settings.h"
 #include "audio/snd.h"
 #include "clock.h"
 #include "cpu.h"
 #include "mem_map.h"
-#include "mappers.h"
-#include "fps.h"
-#include "apu.h"
 #include "ppu.h"
 #include "video/gfx.h"
-#include "text.h"
 #include "sha1.h"
 #include "database.h"
-#include "input.h"
 #include "version.h"
 #include "conf.h"
 #include "save_slot.h"
-#include "rewind.h"
 #include "tas.h"
 #include "ines.h"
 #include "unif.h"
 #include "fds.h"
-#include "nsf.h"
 #include "nsfe.h"
 #include "patcher.h"
-#include "cheat.h"
-#include "overscan.h"
 #include "recent_roms.h"
 #if defined (WITH_OPENGL)
 #include "opengl.h"
 #endif
-#include "uncompress.h"
 #include "gui.h"
 #include "video/effects/pause.h"
 #include "video/effects/tv_noise.h"
@@ -137,6 +126,8 @@ BYTE emu_frame(void) {
 	} else if (nsf.state & (NSF_PAUSE | NSF_STOP)) {
 		BYTE i;
 
+		gui_decode_all_input_events();
+
 		for (i = PORT1; i < PORT_MAX; i++) {
 			if (port_funct[i].input_add_event) {
 				port_funct[i].input_add_event(i);
@@ -194,6 +185,8 @@ BYTE emu_frame_debugger(void) {
 				return (EXIT_OK);
 			} else if (nsf.state & (NSF_PAUSE | NSF_STOP)) {
 				BYTE i;
+
+				gui_decode_all_input_events();
 
 				for (i = PORT1; i < PORT_MAX; i++) {
 					if (port_funct[i].input_add_event) {
@@ -350,7 +343,7 @@ BYTE emu_load_rom(void) {
 		} else if (!ustrcasecmp(ext, uL(".nsf"))) {
 			if (nsf_load_rom() == EXIT_ERROR) {;
 				info.rom.file[0] = 0;
-				text_add_line_info(1, "[red]error loading rom");
+				gui_overlay_info_append_msg_precompiled(5, NULL);
 				fprintf(stderr, "error loading rom\n");
 				goto elaborate_rom_file;
 			}
@@ -358,7 +351,7 @@ BYTE emu_load_rom(void) {
 		} else if (!ustrcasecmp(ext, uL(".nsfe"))) {
 			if (nsfe_load_rom() == EXIT_ERROR) {;
 				info.rom.file[0] = 0;
-				text_add_line_info(1, "[red]error loading rom");
+				gui_overlay_info_append_msg_precompiled(5, NULL);
 				fprintf(stderr, "error loading rom\n");
 				goto elaborate_rom_file;
 			}
@@ -366,7 +359,7 @@ BYTE emu_load_rom(void) {
 		} else if (!ustrcasecmp(ext, uL(".fm2"))) {
 			tas_file(ext, info.rom.file);
 			if (!info.rom.file[0]) {
-				text_add_line_info(1, "[red]error loading rom");
+				gui_overlay_info_append_msg_precompiled(5, NULL);
 				fprintf(stderr, "error loading rom\n");
 			}
 			emu_recent_roms_add(&recent_roms_permit_add, tas.file);
@@ -378,7 +371,7 @@ BYTE emu_load_rom(void) {
 				;
 			} else if (unif_load_rom() == EXIT_ERROR) {
 				info.rom.file[0] = 0;
-				text_add_line_info(1, "[red]error loading rom");
+				gui_overlay_info_append_msg_precompiled(5, NULL);
 				fprintf(stderr, "error loading rom\n");
 				goto elaborate_rom_file;
 			}
@@ -464,8 +457,7 @@ BYTE emu_search_in_database(void *rom_mem) {
 	}
 
 	// calcolo l'sha1 della PRG Rom
-	sha1_csum(rom->data + position, 0x4000 * info.prg.rom[0].banks_16k, info.sha1sum.prg.value,
-		info.sha1sum.prg.string, LOWER);
+	sha1_csum(rom->data + position, 0x4000 * info.prg.rom[0].banks_16k, info.sha1sum.prg.value, info.sha1sum.prg.string, LOWER);
 	position += (info.prg.rom[0].banks_16k * 0x4000);
 
 	if (info.chr.rom[0].banks_8k) {
@@ -475,8 +467,7 @@ BYTE emu_search_in_database(void *rom_mem) {
 		}
 
 		// calcolo anche l'sha1 della CHR rom
-		sha1_csum(rom->data + position, 0x2000 * info.chr.rom[0].banks_8k, info.sha1sum.chr.value,
-			info.sha1sum.chr.string, LOWER);
+		sha1_csum(rom->data + position, 0x2000 * info.chr.rom[0].banks_8k, info.sha1sum.chr.value, info.sha1sum.chr.string, LOWER);
 		position += (info.chr.rom[0].banks_8k * 0x2000);
 	}
 
@@ -991,7 +982,7 @@ uTCHAR *emu_ustrncpy(uTCHAR *dst, uTCHAR *src) {
 	size = ustrlen(src) + 1;
 	dst = (uTCHAR *)malloc(sizeof(uTCHAR) * size);
 	umemset(dst, 0x00, size);
-	ustrncpy(dst, src, size);
+	ustrcpy(dst, src);
 
 	return (dst);
 }
@@ -1050,6 +1041,8 @@ void emu_frame_input_and_rewind(void) {
 	// controllo se ci sono eventi di input
 	if (tas.type == NOTAS) {
 		BYTE i;
+
+		gui_decode_all_input_events();
 
 		for (i = PORT1; i < PORT_MAX; i++) {
 			if (port_funct[i].input_add_event) {
@@ -1183,11 +1176,11 @@ static BYTE emu_ctrl_if_rom_exist(void) {
 	umemset(file, 0x00, usizeof(file));
 
 	if (info.rom.from_load_menu) {
-		ustrncpy(file, info.rom.from_load_menu, usizeof(file));
+		ustrncpy(file, info.rom.from_load_menu, usizeof(file) - 1);
 		free(info.rom.from_load_menu);
 		info.rom.from_load_menu = NULL;
 	} else if (gamegenie.rom) {
-		ustrncpy(file, gamegenie.rom, usizeof(file));
+		ustrncpy(file, gamegenie.rom, usizeof(file) - 1);
 	} else {
 		ustrncpy(file, info.rom.file, usizeof(file));
 	}
@@ -1200,7 +1193,7 @@ static BYTE emu_ctrl_if_rom_exist(void) {
 
 		if (rc == UNCOMPRESS_EXIT_OK) {
 			BYTE is_rom = FALSE, is_patch = FALSE;
-			uTCHAR *rom = NULL, *patch = NULL;
+			uTCHAR *patch = NULL;
 
 			if (archive->rom.count > 0) {
 				is_rom = TRUE;
@@ -1212,26 +1205,23 @@ static BYTE emu_ctrl_if_rom_exist(void) {
 				is_patch = FALSE;
 			}
 			if (is_rom) {
-				switch ((rc = uncompress_archive_extract_file(archive,UNCOMPRESS_TYPE_ROM))) {
+				switch ((rc = uncompress_archive_extract_file(archive, UNCOMPRESS_TYPE_ROM))) {
 					case UNCOMPRESS_EXIT_OK:
-						rom = uncompress_archive_extracted_file_name(archive, UNCOMPRESS_TYPE_ROM);
+						ustrncpy(file, uncompress_archive_extracted_file_name(archive, UNCOMPRESS_TYPE_ROM), usizeof(file) - 1);
 						found = TRUE;
 						break;
 					case UNCOMPRESS_EXIT_ERROR_ON_UNCOMP:
 						break;
 					case UNCOMPRESS_EXIT_IS_COMP_BUT_NOT_SELECTED:
 					case UNCOMPRESS_EXIT_IS_COMP_BUT_NO_ITEMS:
-						rom = info.rom.file;
+						ustrncpy(file, info.rom.file, usizeof(file));
 						break;
 					default:
 						break;
 				}
-				if (rom) {
-					ustrncpy(file, rom, usizeof(file));
-				}
 			}
 			if (is_patch) {
-				switch ((rc = uncompress_archive_extract_file(archive,UNCOMPRESS_TYPE_PATCH))) {
+				switch ((rc = uncompress_archive_extract_file(archive, UNCOMPRESS_TYPE_PATCH))) {
 					case UNCOMPRESS_EXIT_OK:
 						patch = uncompress_archive_extracted_file_name(archive, UNCOMPRESS_TYPE_PATCH);
 						found = TRUE;

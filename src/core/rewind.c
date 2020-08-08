@@ -17,20 +17,18 @@
  */
 
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include "bck_states.h"
 #include "rewind.h"
 #include "info.h"
 #include "mem_map.h"
 #include "cpu.h"
 #include "ppu.h"
-#include "apu.h"
 #include "mappers.h"
 #include "irqA12.h"
 #include "irql2f.h"
 #include "fds.h"
 #include "gui.h"
-#include "input.h"
 #include "clock.h"
 #include "tas.h"
 #include "emu_thread.h"
@@ -45,35 +43,6 @@ enum rewind_misc {
 	REWIND_SNAPS_FOR_CHUNK = 15,
 	REWIND_SNAPS_FOR_FACTOR = 4
 };
-
-#define rewind_on_struct(_mode, _strct, _size_buff)\
-	switch (_mode) {\
-	case REWIND_OP_SAVE:\
-		memcpy(snap->data + index, &_strct, sizeof(_strct));\
-		index += sizeof(_strct);\
-		break;\
-	case REWIND_OP_READ:\
-		memcpy(&_strct, snap->data + index, sizeof(_strct));\
-		index += sizeof(_strct);\
-		break;\
-	case REWIND_OP_COUNT:\
-		rwint.size._size_buff += sizeof(_strct);\
-		break;\
-	}
-#define rewind_on_mem(_mode, _mem, _size, _size_buff)\
-	switch (_mode) {\
-	case REWIND_OP_SAVE:\
-		memcpy(snap->data + index, _mem, _size);\
-		index += _size;\
-		break;\
-	case REWIND_OP_READ:\
-		memcpy(_mem, snap->data + index, _size);\
-		index += _size;\
-		break;\
-	case REWIND_OP_COUNT:\
-		rwint.size._size_buff += _size;\
-		break;\
-	}
 
 typedef struct _rewind_index {
 	int32_t segment;
@@ -96,7 +65,6 @@ INLINE static void rewind_update_chunk_snaps( _rewind_chunk *chunk, int32_t chun
 INLINE static void rewind_operation(BYTE mode, BYTE save_input, _rewind_snapshoot *snap);
 INLINE static void rewind_free_chunk(_rewind_chunk *chunk);
 INLINE static void rewind_execute_frame(void);
-INLINE static char *rewind_convert_time_in_text(char *txt, size_t size, char *color, int32_t counter);
 
 static BYTE _rewind_frames(int32_t frames_to_rewind, BYTE exec_last_frame);
 
@@ -138,6 +106,8 @@ struct _rewind_internal {
 	} size;
 } rwint;
 
+_rewind rwnd;
+
 BYTE rewind_init(void) {
 	// in caso di riavvio del rewind
 	rewind_quit();
@@ -167,11 +137,11 @@ BYTE rewind_init(void) {
 	}
 
 	{
-		_rewind_snapshoot snap;
+		_rewind_snapshoot snap = {};
 
 		snap.index.chunk = 0;
 		snap.index.snap = 0;
-		rewind_operation(REWIND_OP_COUNT, TRUE, &snap);
+		rewind_operation(BCK_STATES_OP_COUNT, TRUE, &snap);
 	}
 
 	rwint.size.chunk = rwint.size.keyframe + (rwint.size.input * REWIND_SNAPS_FOR_CHUNK);
@@ -292,7 +262,7 @@ void rewind_snapshoot(void) {
 	snap->index.chunk = rwint.index.chunk;
 	snap->index.snap = rwint.index.snap;
 
-	rewind_operation(REWIND_OP_SAVE, TRUE, snap);
+	rewind_operation(BCK_STATES_OP_SAVE_ON_MEM, TRUE, snap);
 
 	rwint.count.snaps++;
 
@@ -338,6 +308,12 @@ void rewind_init_operation(void) {
 	gui_update();
 
 	gfx_thread_continue();
+
+	// eseguo un rewind iniziale posizionandomi
+	// sullo stesso frame iniziale. Mi serve
+	// per aggiornare lo screen dopo il passaggio
+	// dal doublebuffer al singlebuffer.
+	rewind_frames(0);
 }
 void rewind_close_operation(void) {
 	gfx_thread_pause();
@@ -363,6 +339,9 @@ BYTE rewind_is_last_snap(void) {
 	return ((rwint.snap_cursor + 1) > rwint.count.snaps);
 }
 
+int32_t rewind_max_buffered_snaps(void) {
+	return (rwint.max_buffered.snaps);
+}
 int32_t rewind_count_snaps(void) {
 	return (rwint.count.snaps);
 }
@@ -385,22 +364,6 @@ int32_t rewind_calculate_snap_cursor(int factor, BYTE direction) {
 	}
 
 	return (snaps);
-}
-
-char *rewind_text_time_count_snaps(void) {
-	static char txt[100];
-
-	return (rewind_convert_time_in_text((char *)&txt, sizeof(txt), "[normal]", rwint.count.snaps));
-}
-char *rewind_text_time_snap_cursor(void) {
-	static char txt[100];
-
-	return (rewind_convert_time_in_text((char *)&txt, sizeof(txt), "[yellow]", rwint.snap_cursor));
-}
-char *rewind_text_time_backward(void) {
-	static char txt[100];
-
-	return (rewind_convert_time_in_text((char *)&txt, sizeof(txt), "[cyan]", rwint.count.snaps - rwint.snap_cursor));
 }
 
 INLINE static BYTE rewind_is_disabled(void) {
@@ -454,116 +417,15 @@ INLINE static void rewind_update_chunk_snaps( _rewind_chunk *chunk, int32_t chun
 }
 INLINE static void rewind_operation(BYTE mode, BYTE save_input, _rewind_snapshoot *snap) {
 	size_t index = 0;
-	BYTE i;
 
 	if (snap->index.snap == 0) {
 		if (snap->index.chunk == 0) {
-			rewind_on_mem(mode, screen.rd->data, screen_size(), screen);
+			bck_states_op_screen(mode, snap->data, &index, &rwint.size.screen);
 		}
-
-		// CPU
-		rewind_on_struct(mode, cpu, keyframe);
-		rewind_on_struct(mode, irq, keyframe);
-		rewind_on_struct(mode, nmi, keyframe);
-
-		// PPU
-		rewind_on_struct(mode, ppu, keyframe);
-		rewind_on_struct(mode, ppu_openbus, keyframe);
-		rewind_on_struct(mode, r2000, keyframe);
-		rewind_on_struct(mode, r2001, keyframe);
-		rewind_on_struct(mode, r2002, keyframe);
-		rewind_on_struct(mode, r2003, keyframe);
-		rewind_on_struct(mode, r2004, keyframe);
-		rewind_on_struct(mode, r2006, keyframe);
-		rewind_on_struct(mode, r2007, keyframe);
-		rewind_on_struct(mode, spr_ev, keyframe);
-		rewind_on_struct(mode, sprite, keyframe);
-		rewind_on_struct(mode, sprite_plus, keyframe);
-		rewind_on_struct(mode, tile_render, keyframe);
-		rewind_on_struct(mode, tile_fetch, keyframe);
-
-		// APU
-		rewind_on_struct(mode, apu, keyframe);
-		rewind_on_struct(mode, r4011, keyframe);
-		rewind_on_struct(mode, r4015, keyframe);
-		rewind_on_struct(mode, r4017, keyframe);
-		rewind_on_struct(mode, S1, keyframe);
-		rewind_on_struct(mode, S2, keyframe);
-		rewind_on_struct(mode, TR, keyframe);
-		rewind_on_struct(mode, NS, keyframe);
-		rewind_on_struct(mode, DMC, keyframe);
-
-		// mem map
-		rewind_on_struct(mode, mmcpu, keyframe);
-		rewind_on_struct(mode, prg, keyframe);
-		rewind_on_mem(mode, prg.ram.data, prg.ram.size, keyframe);
-		if (prg.ram_plus) {
-			rewind_on_mem(mode, prg.ram_plus, prg_ram_plus_size(), keyframe);
-		}
-		rewind_on_struct(mode, chr, keyframe);
-		if (mapper.write_vram) {
-			rewind_on_mem(mode, chr_chip(0), chr_ram_size(), keyframe);
-		}
-		if (chr.extra.size) {
-			rewind_on_mem(mode, chr.extra.data, chr.extra.size, keyframe);
-		}
-		rewind_on_struct(mode, ntbl, keyframe);
-		rewind_on_struct(mode, mmap_palette, keyframe);
-		rewind_on_struct(mode, oam, keyframe);
-
-		// mapper
-		rewind_on_struct(mode, mapper, keyframe);
-		for (i = 0; i < LENGTH(mapper.internal_struct); i++) {
-			if (mapper.internal_struct[i]) {
-				rewind_on_mem(mode, mapper.internal_struct[i], mapper.internal_struct_size[i], keyframe);
-			}
-		}
-
-		// irqA12
-		if (irqA12.present) {
-			rewind_on_struct(mode, irqA12, keyframe);
-		}
-
-		// irql2f
-		if (irql2f.present) {
-			rewind_on_struct(mode, irql2f, keyframe);
-		}
-
-		// FDS
-		if (fds.info.enabled) {
-			BYTE old_side_inserted = fds.drive.side_inserted;
-
-			rewind_on_struct(mode, fds.drive, keyframe);
-			rewind_on_struct(mode, fds.snd, keyframe);
-			rewind_on_struct(mode, fds.info.last_operation, keyframe);
-
-			// in caso di ripristino di una snapshot, se era caricato
-			// un'altro side del disco, devo ricaricarlo.
-			if ((mode == REWIND_OP_READ) && (old_side_inserted != fds.drive.side_inserted)) {
-				fds_disk_op(FDS_DISK_SELECT_FROM_REWIND, fds.drive.side_inserted);
-				gui_update();
-			}
-		}
+		bck_states_op_keyframe(mode, snap->data, &index, &rwint.size.keyframe);
 	}
-
-	// input
 	if (save_input == TRUE) {
-		// standard controller
-		for (i = PORT1; i < PORT_MAX; i++) {
-			rewind_on_struct(mode, port[i].type_pad, input);
-			rewind_on_struct(mode, port[i].index, input);
-			rewind_on_struct(mode, port[i].data, input);
-			rewind_on_struct(mode, port[i].input, input);
-			rewind_on_struct(mode, port[i].turbo, input);
-		}
-
-		// zapper, mouse, arkanoid, oeka_kids_tablet
-		rewind_on_struct(mode, gmouse.x, input);
-		rewind_on_struct(mode, gmouse.y, input);
-		rewind_on_struct(mode, gmouse.left, input);
-		rewind_on_struct(mode, gmouse.right, input);
-
-		rewind_on_struct(mode, tas.total_lag_frames, input);
+		bck_states_op_input(mode, snap->data, &index, &rwint.size.input);
 	}
 }
 INLINE static void rewind_free_chunk(_rewind_chunk *chunk) {
@@ -578,26 +440,15 @@ INLINE static void rewind_free_chunk(_rewind_chunk *chunk) {
 }
 INLINE static void rewind_execute_frame(void) {
 	if (info.frame_status == FRAME_FINISHED) {
+		tas.lag_next_frame = TRUE;
 		info.frame_status = FRAME_STARTED;
 	}
 
 	while (info.frame_status == FRAME_STARTED) {
 		cpu_exe_op();
 	}
-}
-INLINE static char *rewind_convert_time_in_text(char *txt, size_t size, char *color, int32_t counter) {
-	int32_t seconds, ms, s, m, h;
 
-	seconds = counter / machine.fps;
-	h = (seconds / 3600);
-	m = (seconds -(3600 * h)) / 60;
-	s = (seconds -(3600 * h) - (m * 60));
-	ms = (counter % machine.fps) * (1000 / machine.fps);
-
-	memset(txt, 0, size);
-	snprintf(txt, size, "%s%d[normal]:%s%02d[normal]:%s%02d[normal].%s%03d[normal]", color, h, color, m, color, s, color, ms);
-
-	return (txt);
+	tas.lag_actual_frame = tas.lag_next_frame;
 }
 
 static BYTE _rewind_frames(int32_t frames_to_rewind, BYTE exec_last_frame) {
@@ -618,8 +469,6 @@ static BYTE _rewind_frames(int32_t frames_to_rewind, BYTE exec_last_frame) {
 		if (cursor > rwint.count.snaps) {
 			return (EXIT_ERROR);
 		}
-	} else {
-		return (EXIT_ERROR);
 	}
 
 	chunk = cursor / REWIND_SNAPS_FOR_CHUNK;
@@ -676,7 +525,7 @@ static BYTE _rewind_frames(int32_t frames_to_rewind, BYTE exec_last_frame) {
 		snap->index.chunk = index.chunk;
 		snap->index.snap = index.snap;
 
-		rewind_operation(REWIND_OP_READ, TRUE, rwint.cbuffer.snaps);
+		rewind_operation(BCK_STATES_OP_READ_FROM_MEM, TRUE, rwint.cbuffer.snaps);
 	} else {
 		rewind_update_chunk_snaps(&rwint.cbuffer, index.chunk, src);
 
@@ -685,7 +534,7 @@ static BYTE _rewind_frames(int32_t frames_to_rewind, BYTE exec_last_frame) {
 			snap->index.chunk = index.chunk;
 			snap->index.snap = index.snap;
 
-			rewind_operation(REWIND_OP_READ, TRUE, snap);
+			rewind_operation(BCK_STATES_OP_READ_FROM_MEM, TRUE, snap);
 
 			if ((index.snap == snaps) && (exec_last_frame == FALSE)) {
 				break;

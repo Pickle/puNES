@@ -3,8 +3,8 @@
 [![Gentoo package](https://repology.org/badge/version-for-repo/gentoo/punes.svg)](https://repology.org/project/punes/versions)
 [![AUR package](https://repology.org/badge/version-for-repo/aur/punes.svg)](https://repology.org/project/punes/versions)
 [![SlackBuilds package](https://repology.org/badge/version-for-repo/slackbuilds/punes.svg)](https://repology.org/project/punes/versions)
-[![Funtoo 1.3 package](https://repology.org/badge/version-for-repo/funtoo_1.3/punes.svg)](https://repology.org/project/punes/versions)
-[![Rosa 2016.1 package](https://repology.org/badge/version-for-repo/rosa_2016_1/punes.svg)](https://repology.org/project/punes/versions)
+[![Rosa 2019.1 package](https://repology.org/badge/version-for-repo/rosa_2019_1/punes.svg)](https://repology.org/project/punes/versions)
+[![LiGurOS 20.7 package](https://repology.org/badge/version-for-repo/liguros_20_7/punes.svg)](https://repology.org/project/punes/versions)
 [![Wikidata package](https://repology.org/badge/version-for-repo/wikidata/punes.svg)](https://repology.org/project/punes/versions)
 
 Description
@@ -12,7 +12,7 @@ Description
 
 Nintendo Entertaiment System emulator
 
-WIP Builds ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/punesemu/puNES?style=flat) [![Build status](https://ci.appveyor.com/api/projects/status/t820vxmvtvbfbll7?svg=true)](https://ci.appveyor.com/project/punesemu/punes)
+WIP Builds ![GitHub code size in bytes](https://img.shields.io/github/languages/code-size/punesemu/puNES?style=flat) [![CodeFactor](https://www.codefactor.io/repository/github/punesemu/punes/badge/master)](https://www.codefactor.io/repository/github/punesemu/punes/overview/master) [![Build status](https://ci.appveyor.com/api/projects/status/t820vxmvtvbfbll7?svg=true)](https://ci.appveyor.com/project/punesemu/punes) 
 -----------
 always updated to the last commit:
 * Windows 32 bit : [`OpenGL`](https://ci.appveyor.com/api/projects/punesemu/puNES/artifacts/punes32.wip.opengl.zip) - [`D3D9`](https://ci.appveyor.com/api/projects/punesemu/puNES/artifacts/punes32.wip.d3d9.zip)
@@ -29,6 +29,7 @@ How to Compile
 -----------
 
 * [Linux](#linux)
+* [FreeBSD](#freebsd)
 * [OpenBSD](#openbsd)
 * [Windows](#windows)
 
@@ -51,6 +52,26 @@ the executable `punes` is in the `src` directory.
 If you need the debug version then you need to replace the `./configure` command of the previous examples with the following:
 ```bash
 CFLAGS="-g -DDEBUG" CXXFLAGS="-g -DDEBUG" ./configure --disable-release [...]
+```
+where `[...]` are the other necessary options.
+### FreeBSD
+-----------
+#### Dependencies
+* [Qt5](https://www.qt.io) with OpenGL support (qtbase, qtsvg and qttools)
+* [sndio](http://www.sndio.org)
+#### Compilation of puNES
+```bash
+git clone https://github.com/punesemu/punes
+cd punes
+./autogen.sh
+CC=cc CXX=c++ ./configure
+make
+```
+the executable `punes` is in the `src` directory.
+#### FreeBSD Debug version
+If you need the debug version then you need to replace the `./configure` command of the previous examples with the following:
+```bash
+CFLAGS="-g -DDEBUG" CXXFLAGS="-g -DDEBUG" CC=cc CXX=c++ ./configure --disable-release [...]
 ```
 where `[...]` are the other necessary options.
 ### OpenBSD
@@ -94,13 +115,13 @@ exit
 #### Compilation of the Qt5 libraries
 5. download and unzip the sources
 ```bash
-wget http://download.qt.io/archive/qt/5.13/5.13.0/submodules/qtbase-everywhere-src-5.13.0.zip
-unzip qtbase-everywhere-src-5.13.0.zip
-mv qtbase-everywhere-src-5.13.0 qt5
+wget http://download.qt.io/archive/qt/5.15/5.15.0/submodules/qtbase-everywhere-src-5.15.0.zip
+unzip qtbase-everywhere-src-5.15.0.zip
+mv qtbase-everywhere-src-5.15.0 qt5
 ```
 the renaming of the directory is necessary to not generate a compile-time error caused by the 255 characters maximum path length limitation on Windows, This is the typical error message you might encounter:
 ```code
-"../../../../include/QtEventDispatcherSupport/5.13.0/QtEventDispatcherSupport/private/qwindowsguieventdispatcher_p.h:1:10: fatal error: ../../../../../src/platformsupport/eventdispatchers/qwindowsguieventdispatcher_p.h: No such file or directory"
+"../../../../include/QtEventDispatcherSupport/5.15.0/QtEventDispatcherSupport/private/qwindowsguieventdispatcher_p.h:1:10: fatal error: ../../../../../src/platformsupport/eventdispatchers/qwindowsguieventdispatcher_p.h: No such file or directory"
 ```
 6. compile the libraries
 ```bash
@@ -118,9 +139,9 @@ cd ..
 ```
 8. now it's time for the SVG module...
 ```bash
-wget http://download.qt.io/archive/qt/5.13/5.13.0/submodules/qtsvg-everywhere-src-5.13.0.zip
-unzip qtsvg-everywhere-src-5.13.0.zip
-mv qtsvg-everywhere-src-5.13.0 qt5svg
+wget http://download.qt.io/archive/qt/5.15/5.15.0/submodules/qtsvg-everywhere-src-5.15.0.zip
+unzip qtsvg-everywhere-src-5.15.0.zip
+mv qtsvg-everywhere-src-5.15.0 qt5svg
 cd qt5svg
 $MINGW_PREFIX/lib/qt5/bin/qmake
 make
@@ -131,9 +152,9 @@ cd ..
 ```
 9. ...and for the tools
 ```bash
-wget http://download.qt.io/archive/qt/5.13/5.13.0/submodules/qttools-everywhere-src-5.13.0.zip
-unzip qttools-everywhere-src-5.13.0.zip
-mv qttools-everywhere-src-5.13.0 qt5tools
+wget http://download.qt.io/archive/qt/5.15/5.15.0/submodules/qttools-everywhere-src-5.15.0.zip
+unzip qttools-everywhere-src-5.15.0.zip
+mv qttools-everywhere-src-5.15.0 qt5tools
 cd qt5tools
 $MINGW_PREFIX/lib/qt5/bin/qmake
 make

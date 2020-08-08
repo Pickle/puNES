@@ -20,7 +20,6 @@
 #define GFX_H_
 
 #include "common.h"
-#include "text.h"
 #include "video/filters/scale.h"
 #include "video/filters/scale2x.h"
 #include "video/filters/hqx.h"
@@ -94,19 +93,17 @@ enum shader_type {
 enum overcan_type { OSCAN_OFF, OSCAN_ON, OSCAN_DEFAULT };
 enum gfx_info_type { CURRENT, NO_OVERSCAN, MONITOR, VIDEO_MODE, PASS0 };
 enum no_change { NO_CHANGE = 255 };
+enum gfx_rotate_type { ROTATE_0, ROTATE_90, ROTATE_180, ROTATE_270, ROTATE_MAX };
 
+typedef struct _gfx_rect {
+	float x, y;
+	float w, h;
+} _gfx_rect;
 typedef struct _viewport {
 	int x, y;
 	int w, h;
 } _viewport;
-
-#if defined (__cplusplus)
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-EXTERNC struct _gfx {
+typedef struct _gfx {
 	BYTE PSS;
 	BYTE scale_before_fscreen;
 	BYTE type_of_fscreen_in_use;
@@ -138,12 +135,19 @@ EXTERNC struct _gfx {
 			WORD height;
 		} data;
 	} filter;
-} gfx;
+} _gfx;
+
+extern _gfx gfx;
+
+#if defined (__cplusplus)
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
 
 EXTERNC BYTE gfx_init(void);
 EXTERNC void gfx_quit(void);
-EXTERNC void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette,
-	BYTE force_scale, BYTE force_palette);
+EXTERNC void gfx_set_screen(BYTE scale, DBWORD filter, DBWORD shader, BYTE fullscreen, BYTE palette, BYTE force_scale, BYTE force_palette);
 EXTERNC void gfx_draw_screen(void);
 
 #if defined (WITH_D3D9)
@@ -156,12 +160,7 @@ EXTERNC void gfx_palette_update(void);
 EXTERNC void gfx_cursor_init(void);
 EXTERNC void gfx_cursor_set(void);
 
-EXTERNC void gfx_text_create_surface(_txt_element *ele);
-EXTERNC void gfx_text_release_surface(_txt_element *ele);
-EXTERNC void gfx_text_rect_fill(_txt_element *ele, _txt_rect *rect, uint32_t color);
-EXTERNC void gfx_text_reset(void);
-EXTERNC void gfx_text_clear(_txt_element *ele);
-EXTERNC void gfx_text_blit(_txt_element *ele, _txt_rect *rect);
+EXTERNC void gfx_overlay_blit(void *surface, _gfx_rect *rect);
 
 EXTERNC void gfx_apply_filter(void);
 

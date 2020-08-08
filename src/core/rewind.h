@@ -21,11 +21,6 @@
 
 #include "common.h"
 
-enum rewind_operations_mode {
-	REWIND_OP_SAVE,
-	REWIND_OP_READ,
-	REWIND_OP_COUNT
-};
 enum rewind_options {
 	RWND_0_MINUTES,
 	RWND_2_MINUTES,
@@ -48,13 +43,7 @@ enum rewind_action {
 	RWND_ACT_FAST_FORWARD
 };
 
-#if defined (__cplusplus)
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-EXTERNC struct _rewind {
+typedef struct _rewind {
 	BYTE active;
 	BYTE direction;
 	BYTE action;
@@ -64,7 +53,15 @@ EXTERNC struct _rewind {
 		int backward;
 		int forward;
 	} factor;
-} rwnd;
+} _rewind;
+
+extern _rewind rwnd;
+
+#if defined (__cplusplus)
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
 
 EXTERNC BYTE rewind_init(void);
 EXTERNC void rewind_quit(void);
@@ -80,13 +77,10 @@ EXTERNC void rewind_close_operation(void);
 EXTERNC BYTE rewind_is_first_snap(void);
 EXTERNC BYTE rewind_is_last_snap(void);
 
+EXTERNC int32_t rewind_max_buffered_snaps(void);
 EXTERNC int32_t rewind_count_snaps(void);
 EXTERNC int32_t rewind_snap_cursor(void);
 EXTERNC int32_t rewind_calculate_snap_cursor(int factor, BYTE direction);
-
-EXTERNC char *rewind_text_time_count_snaps(void);
-EXTERNC char *rewind_text_time_snap_cursor(void);
-EXTERNC char *rewind_text_time_backward(void);
 
 #undef EXTERNC
 

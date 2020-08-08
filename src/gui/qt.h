@@ -47,13 +47,7 @@
 #define dlgsettings ((dlgSettings *)gui_dlgsettings_get_ptr())
 #define objcheat ((objCheat *)gui_objcheat_get_ptr())
 
-#if defined (__cplusplus)
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-EXTERNC struct _gui {
+typedef struct _gui {
 #if defined (_WIN32)
 	uTCHAR home[MAX_PATH];
 	const uTCHAR *ostmp;
@@ -78,8 +72,8 @@ EXTERNC struct _gui {
 	uint8_t main_win_lfp;
 
 	int dlg_rc;
-} gui;
-EXTERNC struct _gui_mouse {
+} _gui;
+typedef struct _gui_mouse {
 	int x;
 	int y;
 	uint8_t left;
@@ -88,16 +82,29 @@ EXTERNC struct _gui_mouse {
 	uint8_t hidden;
 
 	double timer;
-} gmouse;
-EXTERNC struct _external_windows {
+} _gui_mouse;
+typedef struct _external_windows {
 	uint8_t vs_system;
-} ext_win;
+} _external_windows;
+
+extern _gui gui;
+extern _gui_mouse gmouse;
+extern _external_windows ext_win;
+
+extern double (*gui_get_ms)(void);
+
+#if defined (__cplusplus)
+#define EXTERNC extern "C"
+#else
+#define EXTERNC
+#endif
 
 EXTERNC void gui_quit(void);
 EXTERNC BYTE gui_create(void);
 EXTERNC void gui_start(void);
 
 EXTERNC void gui_set_video_mode(void);
+EXTERNC void gui_set_window_size(void);
 
 EXTERNC void gui_update(void);
 EXTERNC void gui_update_gps_settings(void);
@@ -131,7 +138,18 @@ EXTERNC void gui_emit_et_gg_reset(void);
 EXTERNC void gui_emit_et_vs_reset(void);
 EXTERNC void gui_emit_et_external_control_windows_show(void);
 
+EXTERNC void gui_decode_all_input_events(void);
+
 EXTERNC void gui_screen_update(void);
+
+EXTERNC void gui_overlay_update(void);
+EXTERNC BYTE gui_overlay_is_updated(void);
+EXTERNC void gui_overlay_enable_save_slot(BYTE mode);
+EXTERNC void gui_overlay_set_size(int w, int h);
+EXTERNC void gui_overlay_info_init(void);
+EXTERNC void gui_overlay_info_emulator(void);
+EXTERNC void gui_overlay_info_append_msg_precompiled(int index, void *arg1);
+EXTERNC void gui_overlay_blit(void);
 
 EXTERNC void *gui_dlgsettings_get_ptr(void);
 
@@ -165,8 +183,6 @@ EXTERNC void gui_utf_dirname(uTCHAR *path, uTCHAR *dst, size_t len);
 EXTERNC void gui_utf_basename(uTCHAR *path, uTCHAR *dst, size_t len);
 EXTERNC int gui_utf_strcasecmp(uTCHAR *s0, uTCHAR *s1);
 
-EXTERNC double (*gui_get_ms)(void);
-
 EXTERNC void gui_init(int *argc, char **argv);
 EXTERNC void gui_sleep(double ms);
 #if defined (_WIN32)
@@ -174,9 +190,6 @@ EXTERNC HWND gui_screen_id(void);
 #else
 EXTERNC int gui_screen_id(void);
 #endif
-
-//EXTERNC void gui_add_event(void *funct, void *args);
-//EXTERNC void gui_set_thread_affinity(uint8_t core);
 
 #undef EXTERNC
 

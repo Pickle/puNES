@@ -18,7 +18,6 @@
 
 #include <QtCore/QFileInfo>
 #include "tas.h"
-#include "text.h"
 #include "emu.h"
 #include "info.h"
 #include "gui.h"
@@ -208,7 +207,7 @@ void tas_header_FM2(uTCHAR *file) {
 }
 void tas_read_FM2(void) {
 	unsigned int start;
-	char line[256], *sep;
+	char line[256], *sep, *saveptr;
 
 	tas.count = tas.index = 0;
 
@@ -225,7 +224,7 @@ void tas_read_FM2(void) {
 
 		start++;
 
-		sep = strtok(line + start, "|");
+		sep = strtok_r(line + start, "|", &saveptr);
 
 		tas.il[tas.count].state = atoi(sep);
 
@@ -233,7 +232,7 @@ void tas_read_FM2(void) {
 			BYTE a, b;
 
 			for (a = PORT1; a <= PORT2; a++) {
-				sep = strtok(NULL, "|");
+				sep = strtok_r(NULL, "|", &saveptr);
 
 				if (port[a].type == CTRL_STANDARD) {
 					for (b = 0; b < 8; b++) {
@@ -244,15 +243,15 @@ void tas_read_FM2(void) {
 						}
 					}
 				} else if (port[a].type == CTRL_ZAPPER) {
-					char *space;
+					char *space, *last;
 
-					space = strtok(sep, " ");
+					space = strtok_r(sep, " ", &last);
 					tas.il[tas.count].port[a][0] = QString::fromUtf8(space).simplified().toUInt();
-					space = strtok(NULL, " ");
+					space = strtok_r(NULL, " ", &last);
 					tas.il[tas.count].port[a][1] = QString::fromUtf8(space).simplified().toUInt();
-					space = strtok(NULL, " ");
+					space = strtok_r(NULL, " ", &last);
 					tas.il[tas.count].port[a][2] = QString::fromUtf8(space).simplified().toUInt();
-					space = strtok(NULL, " ");
+					space = strtok_r(NULL, " ", &last);
 					tas.il[tas.count].port[a][3] = QString::fromUtf8(space).simplified().toUInt();
 				}
 			}
@@ -268,13 +267,13 @@ void tas_read_FM2(void) {
 void tas_frame_FM2(void) {
 	// il primo frame
 	if (!tas.frame) {
-		text_add_line_info(1, "[yellow]silence, the movie has begun[normal]");
+		gui_overlay_info_append_msg_precompiled(20, NULL);
 		//tas_increment_index()
 	}
 
 	if (++tas.frame >= tas.total) {
 		if (tas.frame == tas.total) {
-			text_add_line_single(4, FONT_12X10, 200, TXT_CENTER, TXT_CENTER, 0, 0, "The End");
+			gui_overlay_info_append_msg_precompiled(21, NULL);
 		} else if (tas.frame == tas.total + 10) {
 			// nel tas_quit() eseguo il ripristino delle porte e l'input_init() solo che questo
 			// cambia lo stato delle pulsanti e in alcuni film (aglar-marblemadness.fm2)

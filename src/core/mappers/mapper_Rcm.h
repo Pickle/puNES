@@ -24,7 +24,6 @@
 enum { GS2015 };
 
 void map_init_Rcm(BYTE type);
-
 void extcl_cpu_wr_mem_GS2015(WORD address, BYTE value);
 
 #endif /* MAPPER_RCM_H_ */

@@ -47,6 +47,7 @@ class wdgSettingsVideo : public QWidget, public Ui::wdgSettingsVideo {
 
 	private:
 		void scale_set(void);
+		void srotation_set(void);
 		void par_set(void);
 		void oscan_set(void);
 		void oscan_def_value_set(void);
@@ -74,7 +75,7 @@ class wdgSettingsVideo : public QWidget, public Ui::wdgSettingsVideo {
 		void s_shader_file(bool checked);
 		void s_shader_file_clear(bool checked);
 		void s_shader_param_slider(int value);
-		void s_shader_param_spin(const QString &text);
+		void s_shader_param_spin(double d);
 		void s_shader_param_default(bool checked);
 		void s_shader_param_all_defaults(bool checked);
 #if defined (WITH_OPENGL)
@@ -94,6 +95,8 @@ class wdgSettingsVideo : public QWidget, public Ui::wdgSettingsVideo {
 		void s_fullscreen_in_window(bool checked);
 		void s_integer_in_fullscreen(bool checked);
 		void s_stretch_in_fullscreen(bool checked);
+		void s_screen_rotation(int index);
+		void s_text_rotation(bool checked);
 };
 
 #endif /* WDGSETTINGSVIDEO_HPP_ */

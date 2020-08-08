@@ -21,12 +21,15 @@
 
 #include "apu.h"
 #include "input.h"
-#include "overscan.h"
 
 typedef struct _last_pos {
 	int x;
 	int y;
 } _last_pos;
+typedef struct _toolbar {
+	BYTE area;
+	BYTE hidden;
+} _toolbar;
 typedef struct _config {
 	BYTE save_on_exit;
 	BYTE mode;
@@ -60,6 +63,8 @@ typedef struct _config {
 	BYTE interpolation;
 	BYTE cheat_mode;
 	BYTE txt_on_screen;
+	BYTE screen_rotation;
+	BYTE text_rotation;
 	BYTE show_fps;
 	BYTE input_display;
 	BYTE disable_tv_noise;
@@ -94,16 +99,10 @@ typedef struct _config {
 
 	_last_pos last_pos;
 	_last_pos last_pos_settings;
+	_toolbar toolbar;
 } _config;
 
-#if defined (__cplusplus)
-#define EXTERNC extern "C"
-#else
-#define EXTERNC
-#endif
-
-EXTERNC _config cfg_from_file, *cfg;
-
-#undef EXTERNC
+extern _config *cfg;
+extern _config cfg_from_file;
 
 #endif /* CONF_H_ */

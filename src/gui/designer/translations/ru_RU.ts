@@ -662,6 +662,14 @@
       <source>&amp;Toggle GUI in window</source>
       <translation>Скрыт&amp;ь GUI в оконном режиме</translation>
     </message>
+    <message>
+      <source>Save Unalte&amp;red NES screen</source>
+      <translation>Сохранить экран NES без изменени&amp;й</translation>
+    </message>
+    <message>
+      <source>Widgets</source>
+      <translation>Виджеты</translation>
+    </message>
   </context>
   <context>
     <name>objCheat</name>
@@ -676,6 +684,149 @@
     <message>
       <source>The file is in read only mode</source>
       <translation>Файл находится в режиме &quot;только для чтения&quot;</translation>
+    </message>
+  </context>
+  <context>
+    <name>overlayWidgetInfo</name>
+    <message>
+      <source>start wav recording</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>Начать запись wav</translation>
+    </message>
+    <message>
+      <source>stop wav recording</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>Остановить запись wav</translation>
+    </message>
+    <message>
+      <source>[red]Game Genie rom not found[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]Game Genie rom не найден[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading Game Genie rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка при загрузке Game Genie rom[normal]</translation>
+    </message>
+    <message>
+      <source>[red]Illegal Opcode[normal] [yellow]0x%1[normal] at [yellow]0x%2[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]Некорректный Opcode[normal] [yellow]0x%1[normal] в [yellow]0x%2[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка при загрузке rom[normal]</translation>
+    </message>
+    <message>
+      <source>[red]FDS bios not found[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]биос FDS не найден[normal]</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [yellow]ejected[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]извлечена[normal] [cyan]%1[normal] сторона [cyan]%2[normal] диска</translation>
+    </message>
+    <message>
+      <source>you must [yellow]eject[normal] disk first</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>сначала вы должны [yellow]извлечь[normal] диск</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [green]inserted[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[green]вставлена[normal] [cyan]%1[normal] сторона [cyan]%2[normal] диска</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [brown]selected[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[brown]выбрана[normal] [cyan]%1[normal] сторона [cyan]%2[normal] диска</translation>
+    </message>
+    <message>
+      <source>[yellow]mapper[normal] [brown]%1[normal] [yellow]not supported[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]mapper[normal] [brown]%1[normal] [yellow]не поддерживается[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading patch file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка при загрузке файла патча[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]save is impossible in Game Genie menu[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]сохранение невозможно в меню Game Genie[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]movie playback interrupted[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]воспроизведение фильма прервано[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error[normal] loading state</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка[normal] загрузки сохранения</translation>
+    </message>
+    <message>
+      <source>[red]state file is not for this rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]файл сохранения не для этого rom[normal]</translation>
+    </message>
+    <message>
+      <source>[green]%1[normal] cheat active</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[green]%1[normal] чит активирован</translation>
+    </message>
+    <message>
+      <source>[green]%1[normal] cheats active</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[green]%1[normal] читов активировано</translation>
+    </message>
+    <message>
+      <source>overclock enabled [green]VB[normal] [cyan]%1[normal], [green]PR[normal] [cyan]%2[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>разгон включён [green]VB[normal] [cyan]%1[normal], [green]PR[normal] [cyan]%2[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]silence, the movie has begun[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]Тишина, фильм запущен[normal]</translation>
+    </message>
+    <message>
+      <source>The End</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>Конец</translation>
+    </message>
+    <message>
+      <source>switched to [green]%1[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>переключено на [green]%1[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on game genie rom file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка в файле game genie rom[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on FDS bios file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка в файле FDS биоса[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on shader file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка в файле шейдеров[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on palette file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибка в файле палитры[normal]</translation>
+    </message>
+    <message>
+      <source>[red]errors[normal] on shader, use [green]&apos;No shader&apos;[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]ошибок[normal] в шейдере, используйте [green]&apos;Без шейдера&apos;[normal]</translation>
     </message>
   </context>
   <context>
@@ -931,6 +1082,56 @@
     </message>
   </context>
   <context>
+    <name>wdgRewind</name>
+    <message>
+      <source>Forward (single frame)</source>
+      <translation>На кадр вперед</translation>
+    </message>
+    <message>
+      <source>Rewind (single frame)</source>
+      <translation>На кадр назад</translation>
+    </message>
+    <message>
+      <source>Pause</source>
+      <translation>Пауза</translation>
+    </message>
+    <message>
+      <source>Fast forward (from 1x to 8x)</source>
+      <translation>Перемотка вперед (от 1x до 8x)</translation>
+    </message>
+    <message>
+      <source>Fast rewind (from 1x to 8x)</source>
+      <translation>Перемотка назад (от 1x до 8x)</translation>
+    </message>
+    <message>
+      <source>Play</source>
+      <translation>Воспроизведение</translation>
+    </message>
+    <message>
+      <source>Rewind</source>
+      <translation>Перемотка</translation>
+    </message>
+  </context>
+  <context>
+    <name>wdgRotateScreen</name>
+    <message>
+      <source>Rotate the screen 90 degrees to the Right</source>
+      <translation>Повернуть экран на 90 градусов вправо</translation>
+    </message>
+    <message>
+      <source>Rotate the screen 90 degrees to the left</source>
+      <translation>Повернуть экран на 90 градусов влево</translation>
+    </message>
+    <message>
+      <source>Current degree of rotation</source>
+      <translation>Текущий угол поворота</translation>
+    </message>
+    <message>
+      <source>Rotate Screen</source>
+      <translation>Повернуть экран</translation>
+    </message>
+  </context>
+  <context>
     <name>wdgSettingsAudio</name>
     <message>
       <source>Output Devices</source>
@@ -954,7 +1155,7 @@
     </message>
     <message>
       <source>0</source>
-      <translation type="unfinished"/>
+      <translation>0</translation>
     </message>
     <message>
       <source>1 (Default)</source>
@@ -1298,6 +1499,10 @@
       <source>Turkish</source>
       <translation>Türkçe</translation>
     </message>
+    <message>
+      <source>Portuguese (Brazil)</source>
+      <translation>Português (Brazil)</translation>
+    </message>
   </context>
   <context>
     <name>wdgSettingsInput</name>
@@ -1436,6 +1641,10 @@
     <message>
       <source>Joystick</source>
       <translation>Джойстик</translation>
+    </message>
+    <message>
+      <source>Unset all</source>
+      <translation>Сбросить все</translation>
     </message>
   </context>
   <context>
@@ -1863,6 +2072,30 @@
       <source>Use integer scaling in fullscreen</source>
       <translation>Использовать целочисленное масштабирование в полноэкранном режиме</translation>
     </message>
+    <message>
+      <source>Screen rotation</source>
+      <translation>Поворот экрана</translation>
+    </message>
+    <message>
+      <source>0 degrees</source>
+      <translation>0 градусов</translation>
+    </message>
+    <message>
+      <source>90 degrees</source>
+      <translation>90 градусов</translation>
+    </message>
+    <message>
+      <source>180 degrees</source>
+      <translation>180 градусов</translation>
+    </message>
+    <message>
+      <source>270 degrees</source>
+      <translation>270 градусов</translation>
+    </message>
+    <message>
+      <source>Also rotate the text on screen</source>
+      <translation>Также повернуть текст на экране</translation>
+    </message>
   </context>
   <context>
     <name>wdgState</name>
@@ -1875,12 +2108,20 @@
       <translation>Слот %1</translation>
     </message>
     <message>
-      <source>Save</source>
-      <translation>Сохранить</translation>
+      <source>Save state</source>
+      <translation>Сделать сохранение</translation>
     </message>
     <message>
-      <source>Load</source>
-      <translation>Загрузить</translation>
+      <source>Save/Load State</source>
+      <translation>Сохранить/Загрузить Игру</translation>
+    </message>
+    <message>
+      <source>Slot state</source>
+      <translation>Слоты сохранений</translation>
+    </message>
+    <message>
+      <source>Load state</source>
+      <translation>Загрузить сохранение</translation>
     </message>
   </context>
 </TS>

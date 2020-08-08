@@ -25,24 +25,23 @@
 #include "mem_map.h"
 #include "cpu.h"
 #include "ppu.h"
-#include "apu.h"
 #include "mappers.h"
 #include "irqA12.h"
 #include "irql2f.h"
+#include "bck_states.h"
 #include "rewind.h"
 #include "video/gfx.h"
 #include "gui.h"
 #include "tas.h"
-#include "text.h"
 #include "fds.h"
 #include "nsf.h"
 #include "cheat.h"
-#include "info.h"
 
-#define SAVE_VERSION 22
+#define SAVE_VERSION 23
 
-static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp);
 static uTCHAR *name_slot_file(BYTE slot);
+
+_save_slot save_slot;
 
 BYTE save_slot_save(BYTE slot) {
 	uTCHAR *file;
@@ -50,7 +49,7 @@ BYTE save_slot_save(BYTE slot) {
 
 	// game genie
 	if (info.mapper.id == GAMEGENIE_MAPPER) {
-		text_add_line_info(1, "[yellow]save is impossible in Game Genie menu");
+		gui_overlay_info_append_msg_precompiled(13, NULL);
 		return (EXIT_ERROR);
 	}
 
@@ -67,19 +66,19 @@ BYTE save_slot_save(BYTE slot) {
 		return (EXIT_ERROR);
 	}
 
-	slot_operation(SAVE_SLOT_SAVE, slot, fp);
+	save_slot_operation(SAVE_SLOT_SAVE, slot, fp);
 
 	fflush(fp);
 
 	// aggiorno la posizione della preview e il totalsize
-	slot_operation(SAVE_SLOT_COUNT, slot, fp);
+	save_slot_operation(SAVE_SLOT_COUNT, slot, fp);
 
 	save_slot.state[slot] = TRUE;
 
 	fclose(fp);
 
 	if (slot < SAVE_SLOT_FILE) {
-		text_save_slot(SAVE_SLOT_SAVE);
+		gui_overlay_enable_save_slot(SAVE_SLOT_SAVE);
 	}
 
 	return (EXIT_OK);
@@ -89,7 +88,7 @@ BYTE save_slot_load(BYTE slot) {
 	FILE *fp;
 
 	if (tas.type) {
-		text_add_line_info(1, "[yellow]movie playback interrupted[normal]");
+		gui_overlay_info_append_msg_precompiled(14, NULL);
 		tas_quit();
 	}
 
@@ -110,31 +109,31 @@ BYTE save_slot_load(BYTE slot) {
 	}
 
 	if ((fp = ufopen(file, uL("rb"))) == NULL) {
-		text_add_line_info(1, "[red]error[normal] loading state");
+		gui_overlay_info_append_msg_precompiled(15, NULL);
 		fprintf(stderr, "error loading state\n");
 		return (EXIT_ERROR);
 	}
 
 	// mi salvo lo stato attuale da ripristinare in caso
 	// di un file di salvataggio corrotto.
-	rewind_save_state_snap(REWIND_OP_SAVE);
+	rewind_save_state_snap(BCK_STATES_OP_SAVE_ON_MEM);
 
 	if (slot == SAVE_SLOT_FILE) {
-		slot_operation(SAVE_SLOT_COUNT, slot, fp);
+		save_slot_operation(SAVE_SLOT_COUNT, slot, fp);
 
 		if (memcmp(info.sha1sum.prg.value, save_slot.sha1sum.prg.value,
 			sizeof(info.sha1sum.prg.value)) != 0) {
-			text_add_line_info(1, "[red]state file is not for this rom[normal]");
+			gui_overlay_info_append_msg_precompiled(16, NULL);
 			fprintf(stderr, "state file is not for this rom.\n");
-			rewind_save_state_snap(REWIND_OP_READ);
+			rewind_save_state_snap(BCK_STATES_OP_READ_FROM_MEM);
 			fclose(fp);
 			return (EXIT_ERROR);
 		}
 	}
 
-	if (slot_operation(SAVE_SLOT_READ, slot, fp)) {
+	if (save_slot_operation(SAVE_SLOT_READ, slot, fp)) {
 		fprintf(stderr, "error loading state, corrupted file.\n");
-		rewind_save_state_snap(REWIND_OP_READ);
+		rewind_save_state_snap(BCK_STATES_OP_READ_FROM_MEM);
 		fclose(fp);
 		return (EXIT_ERROR);
 	}
@@ -142,7 +141,7 @@ BYTE save_slot_load(BYTE slot) {
 	fclose(fp);
 
 	if (slot < SAVE_SLOT_FILE) {
-		text_save_slot(SAVE_SLOT_READ);
+		gui_overlay_enable_save_slot(SAVE_SLOT_READ);
 	}
 
 	//riavvio il rewind
@@ -169,7 +168,7 @@ void save_slot_count_load(void) {
 				continue;
 			}
 
-			slot_operation(SAVE_SLOT_COUNT, i, fp);
+			save_slot_operation(SAVE_SLOT_COUNT, i, fp);
 			fclose(fp);
 		}
 	}
@@ -208,8 +207,7 @@ BYTE save_slot_element_struct(BYTE mode, BYTE slot, uintptr_t *src, DBWORD size,
 	}
 	return (EXIT_OK);
 }
-
-static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp) {
+BYTE save_slot_operation(BYTE mode, BYTE slot, FILE *fp) {
 	uint32_t tmp = 0;
 	WORD i = 0;
 
@@ -227,7 +225,7 @@ static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp) {
 			_save_slot_ele(SAVE_SLOT_READ, slot, save_slot.rom_file, 1024)
 		} else if (save_slot.version < 21) {
 			_save_slot_ele(SAVE_SLOT_READ, slot, save_slot.rom_file, (1024 * sizeof(uTCHAR)))
-		} else {
+		} else if (save_slot.version < 23) {
 			save_slot_ele(SAVE_SLOT_READ, slot, save_slot.rom_file)
 		}
 		save_slot_ele(SAVE_SLOT_READ, slot, save_slot.sha1sum.prg.value)
@@ -242,7 +240,7 @@ static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp) {
 			_save_slot_ele(mode, slot, save_slot.rom_file, 1024)
 		} else if (save_slot.version < 21) {
 			_save_slot_ele(mode, slot, save_slot.rom_file, (1024 * sizeof(uTCHAR)))
-		} else {
+		} else if (save_slot.version < 23) {
 			save_slot_ele(mode, slot, save_slot.rom_file)
 		}
 		save_slot_ele(mode, slot, save_slot.sha1sum.prg.value)
@@ -252,12 +250,13 @@ static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp) {
 			save_slot_ele(mode, slot, save_slot.sha1sum.chr.string)
 		}
 	} else {
+		save_slot.tot_size[slot] = 0;
 		save_slot_int(mode, slot, save_slot.version)
 		if (save_slot.version < 16) {
 			_save_slot_ele(mode, slot, info.rom.file, 1024)
 		} else if (save_slot.version < 21) {
 			_save_slot_ele(mode, slot, info.rom.file, (1024 * sizeof(uTCHAR)))
-		} else {
+		} else if (save_slot.version < 23) {
 			save_slot_ele(mode, slot, info.rom.file)
 		}
 		save_slot_ele(mode, slot, info.sha1sum.prg.value)
@@ -753,6 +752,7 @@ static BYTE slot_operation(BYTE mode, BYTE slot, FILE *fp) {
 
 	return (EXIT_OK);
 }
+
 static uTCHAR *name_slot_file(BYTE slot) {
 	static uTCHAR file[LENGTH_FILE_NAME_LONG];
 	uTCHAR ext[10], bname[255], *last_dot, *fl = NULL;
@@ -784,7 +784,7 @@ static uTCHAR *name_slot_file(BYTE slot) {
 	// rintraccio l'ultimo '.' nel nome
 	if ((last_dot = ustrrchr(file, uL('.')))) {
 		// elimino l'estensione
-		*last_dot = 0x00;
+		(*last_dot) = 0x00;
 	}
 	// aggiungo l'estensione
 	ustrcat(file, ext);

@@ -20,21 +20,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include "main.h"
-#include "debugger.h"
+#include "compilation_unit_orphan.h"
 #include "../gui/cmd_line.h"
 #include "emu.h"
 #include "emu_thread.h"
-#include "info.h"
 #include "settings.h"
-#include "mem_map.h"
 #include "video/gfx.h"
-#include "text.h"
-#include "conf.h"
 #include "version.h"
-#include "gui.h"
 #include "cheat.h"
 #include "recent_roms.h"
-#include "uncompress.h"
 #include "patcher.h"
 #include "ppu.h"
 
@@ -121,16 +115,8 @@ int main(int argc, char **argv) {
 
 	gamegenie_init();
 
-	text_init();
-
-	if (!info.portable) {
-		text_add_line_info(1, "[yellow]p[red]u[green]N[cyan]E[brown]S[normal]"
-			" [font8](by [cyan]FHorse[normal]) [font12]%s", VERSION);
-	} else {
-		text_add_line_info(1, "[font8][cyan]Portable[normal] "
-			"[font12][yellow]p[red]u[green]N[cyan]E[brown]S[normal]"
-			"[font8] (by [cyan]FHorse[normal]) [font12]%s", VERSION);
-	}
+	gui_overlay_info_init();
+	gui_overlay_info_emulator();
 
 	// tratto il file di configurazione ed
 	// i parametri passati dalla riga di comando.

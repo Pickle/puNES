@@ -22,7 +22,6 @@
 #if defined (__OpenBSD__)
 #include <stdio.h>
 #endif
-#include "uncompress.h"
 #include "info.h"
 #include "c++/l7zip/l7z.h"
 #include "gui.h"
@@ -46,6 +45,8 @@ static BYTE mz_zip_examine_archive(_uncompress_archive *archive);
 static BYTE mz_zip_extract_from_archive(_uncompress_archive *archive, uint32_t selected, BYTE type);
 static uTCHAR *mz_zip_item_file_name(_uncompress_archive *archive, uint32_t selected, BYTE type);
 #endif
+
+_uncompress_storage uncstorage;
 
 BYTE uncompress_init(void) {
 	l7z_init();
@@ -113,7 +114,7 @@ _uncompress_archive *uncompress_archive_alloc(uTCHAR *file, BYTE *rc) {
 		return (NULL);
 	}
 	umemset(archive->file, 0x00, size);
-	ustrncpy(archive->file, file, size);
+	ustrcpy(archive->file, file);
 
 	archive->rom.count = 0;
 	archive->rom.storage_index = UNCOMPRESS_NO_FILE_SELECTED;
@@ -171,8 +172,12 @@ BYTE uncompress_archive_extract_file(_uncompress_archive *archive, BYTE type) {
 			rc = uncompress_extract_from_archive(archive, selected, type);
 			break;
 		default:
+<<<<<<< HEAD
 #if !defined (WITH_SDL2)            
             selected = gui_uncompress_selection_dialog(archive, type);
+=======
+			selected = gui_uncompress_selection_dialog(archive, type);
+>>>>>>> ca4ffb49c03167bdc8ad8a7a8927a8507e677835
 
 			if (selected == UNCOMPRESS_NO_FILE_SELECTED) {
 				rc = UNCOMPRESS_EXIT_IS_COMP_BUT_NOT_SELECTED;
@@ -185,8 +190,7 @@ BYTE uncompress_archive_extract_file(_uncompress_archive *archive, BYTE type) {
 
 	return (rc);
 }
-_uncompress_archive_item *uncompress_archive_find_item(_uncompress_archive *archive,
-	uint32_t selected, BYTE type) {
+_uncompress_archive_item *uncompress_archive_find_item(_uncompress_archive *archive, uint32_t selected, BYTE type) {
 	uint32_t i, index = 0;
 
 	for (i = 0; i < archive->list.count; i++) {
@@ -242,8 +246,7 @@ uTCHAR *uncompress_storage_archive_name(uTCHAR *file) {
 
 	return (NULL);
 }
-uint32_t uncompress_storage_add_to_list(_uncompress_archive *archive,
-	_uncompress_archive_item *aitem, uTCHAR *file) {
+uint32_t uncompress_storage_add_to_list(_uncompress_archive *archive, _uncompress_archive_item *aitem, uTCHAR *file) {
 	_uncompress_storage_item *sitem, *si = NULL;
 	BYTE found = FALSE;
 	uint32_t i;

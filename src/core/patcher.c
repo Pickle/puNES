@@ -25,8 +25,6 @@
 #include "info.h"
 #include "emu.h"
 #include "gui.h"
-#include "text.h"
-#include "uncompress.h"
 #include "cheat.h"
 #include "conf.h"
 
@@ -44,6 +42,8 @@ static uint32_t patcher_crc32(unsigned char *message, unsigned int len);
 static BYTE patcher_ips(_rom_mem *patch, _rom_mem *rom);
 static BYTE patcher_bps_decode(_rom_mem *patch, size_t *size);
 static BYTE patcher_bps(_rom_mem *patch, _rom_mem *rom);
+
+_patcher patcher;
 
 void patcher_init(void) {
 	memset(&patcher, 0x00, sizeof(patcher));
@@ -64,11 +64,11 @@ BYTE patcher_ctrl_if_exist(uTCHAR *patch) {
 	BYTE i, found = FALSE;
 
 	if (patch) {
-		ustrncpy(file, patch, usizeof(file));
+		ustrncpy(file, patch, usizeof(file) - 1);
 	} else if (patcher.file) {
-		ustrncpy(file, patcher.file, usizeof(file));
+		ustrncpy(file, patcher.file, usizeof(file) - 1);
 	} else if (gamegenie.patch) {
-		ustrncpy(file, gamegenie.patch, usizeof(file));
+		ustrncpy(file, gamegenie.patch, usizeof(file) - 1);
 	} else {
 		ustrncpy(file, info.rom.file, usizeof(file));
 	}
@@ -83,7 +83,6 @@ BYTE patcher_ctrl_if_exist(uTCHAR *patch) {
 
 	{
 		_uncompress_archive *archive;
-		uTCHAR *upatch = NULL;
 		BYTE rc;
 
 		archive = uncompress_archive_alloc(file, &rc);
@@ -92,16 +91,13 @@ BYTE patcher_ctrl_if_exist(uTCHAR *patch) {
 			if (archive->patch.count > 0) {
 				switch ((rc = uncompress_archive_extract_file(archive,UNCOMPRESS_TYPE_PATCH))) {
 					case UNCOMPRESS_EXIT_OK:
-						upatch = uncompress_archive_extracted_file_name(archive, UNCOMPRESS_TYPE_PATCH);
+						ustrncpy(file, uncompress_archive_extracted_file_name(archive, UNCOMPRESS_TYPE_PATCH), usizeof(file) - 1);
 						found = TRUE;
 						break;
 					case UNCOMPRESS_EXIT_ERROR_ON_UNCOMP:
 						break;
 					default:
 						break;
-				}
-				if (upatch) {
-					ustrncpy(file, upatch, usizeof(file));
 				}
 			}
 			uncompress_archive_free(archive);
@@ -123,7 +119,7 @@ BYTE patcher_ctrl_if_exist(uTCHAR *patch) {
 		// rintraccio l'ultimo '.' nel nome
 		if ((last_dot = ustrrchr(file, uL('.')))) {
 			// elimino l'estensione
-			*last_dot = 0x00;
+			(*last_dot) = 0x00;
 		};
 		// aggiungo l'estensione
 		ustrcat(file, patch_ext[i]);
@@ -185,21 +181,21 @@ void patcher_apply(void *rom_mem) {
 
 	if (ustrcasecmp(ext, uL(".ips")) == 0) {
 		if (patcher_ips(&patch, rom) == EXIT_ERROR) {
-			text_add_line_info(1, "[red]error loading patch file");
+			gui_overlay_info_append_msg_precompiled(12, NULL);
 			fprintf(stderr, "error loading patch file\n");
 		} else {
 			patcher.patched = TRUE;
 		}
 	} else if (ustrcasecmp(ext, uL(".bps")) == 0) {
 		if (patcher_bps(&patch, rom) == EXIT_ERROR) {
-			text_add_line_info(1, "[red]error loading patch file");
+			gui_overlay_info_append_msg_precompiled(12, NULL);
 			fprintf(stderr, "error loading patch file\n");
 		} else {
 			patcher.patched = TRUE;
 		}
 	} else if (ustrcasecmp(ext, uL(".xdelta")) == 0) {
 		if (patcher_xdelta(&patch, rom) == EXIT_ERROR) {
-			text_add_line_info(1, "[red]error loading patch file");
+			gui_overlay_info_append_msg_precompiled(12, NULL);
 			fprintf(stderr, "error loading patch file\n");
 		} else {
 			patcher.patched = TRUE;
@@ -271,21 +267,21 @@ static int64_t patcher_4byte_reverse(_rom_mem *patch) {
 	return (dbw);
 }
 static uint32_t patcher_crc32(unsigned char *message, unsigned int len) {
-   unsigned int byte, crc, mask, i;
-   int j;
+	unsigned int byte, crc, mask, i;
+	int j;
 
-   crc = 0xFFFFFFFF;
+	crc = 0xFFFFFFFF;
 
-   for (i = 0; i < len; i++) {
-      byte = message[i];            // Get next byte.
-      crc = crc ^ byte;
+	for (i = 0; i < len; i++) {
+		byte = message[i]; // Get next byte.
+		crc = crc ^ byte;
 
-      for (j = 7; j >= 0; j--) {    // Do eight times.
-         mask = -(crc & 1);
-         crc = (crc >> 1) ^ (0xEDB88320 & mask);
-      }
-   }
-   return (~crc);
+		for (j = 7; j >= 0; j--) { // Do eight times
+			mask = -(crc & 1);
+			crc = (crc >> 1) ^ (0xEDB88320 & mask);
+		}
+	}
+	return (~crc);
 }
 static BYTE patcher_ips(_rom_mem *patch, _rom_mem *rom) {
 	size_t size = rom->size;

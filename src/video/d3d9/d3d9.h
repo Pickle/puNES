@@ -155,6 +155,11 @@ typedef struct _d3d9 {
 		_texture_simple tex[MAX_PREV + 1];
 	} screen;
 
+	struct _d3d9_video_mode {
+		UINT w;
+		UINT h;
+	} video_mode;
+
 	struct _feedback {
 		uint8_t in_use;
 		_texture tex;
@@ -162,18 +167,18 @@ typedef struct _d3d9 {
 
 	RECT viewp;
 
-	_texture_simple text;
+	_texture_simple overlay;
 	_texture texture[MAX_PASS + 1];
 	_lut lut[MAX_PASS];
 } _d3d9;
+
+extern _d3d9 d3d9;
 
 #if defined (__cplusplus)
 #define EXTERNC extern "C"
 #else
 #define EXTERNC
 #endif
-
-EXTERNC _d3d9 d3d9;
 
 EXTERNC BYTE d3d9_init(void);
 EXTERNC BYTE d3d9_context_create(void);

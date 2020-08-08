@@ -115,8 +115,7 @@ dlgStdPad::dlgStdPad(_cfg_port *cfg_port, QWidget *parent = 0) : QDialog(parent)
 		comboBox_Controller_type->addItem(tr("Original"));
 		comboBox_Controller_type->addItem(tr("3rd-party"));
 		comboBox_Controller_type->setCurrentIndex(data.cfg.port->type_pad);
-		connect(comboBox_Controller_type, SIGNAL(activated(int)), this,
-			SLOT(s_combobox_controller_type_activated(int)));
+		connect(comboBox_Controller_type, SIGNAL(activated(int)), this, SLOT(s_combobox_controller_type_activated(int)));
 	}
 
 	for (int i = TURBOA; i <= TURBOB; i++) {
@@ -204,6 +203,9 @@ void dlgStdPad::closeEvent(QCloseEvent *event) {
 		data.joy.fd = 0;
 	}
 #endif
+
+	js_quit(FALSE);
+	js_init(FALSE);
 
 	mainwin->shcjoy_start();
 
@@ -353,8 +355,7 @@ void dlgStdPad::setEnable_tab_buttons(int type, bool mode) {
 		findChild<QLabel *>("label_" + SPT(type) + "_" + SPB(a))->setEnabled(mode);
 		findChild<QLabel *>("label_" + SPT(type) + "_" + SPB(a))->setStyleSheet("");
 		findChild<QPushButton *>("pushButton_" + SPT(type) + "_" + SPB(a))->setEnabled(mode);
-		findChild<QPushButton *>("pushButton_" + SPT(type) +
-				"_unset_" + SPB(a))->setEnabled(mode);
+		findChild<QPushButton *>("pushButton_" + SPT(type) + "_unset_" + SPB(a))->setEnabled(mode);
 	}
 }
 void dlgStdPad::disable_tab_and_other(int type, int vbutton) {
@@ -525,8 +526,7 @@ void dlgStdPad::s_combobox_controller_type_activated(int index) {
 
 	data.cfg.port->type_pad = index;
 
-	if (((data.cfg.port->type_pad == CTRL_PAD_AUTO) && (machine.type != DENDY))
-			|| (data.cfg.port->type_pad == CTRL_PAD_ORIGINAL)) {
+	if (((data.cfg.port->type_pad == CTRL_PAD_AUTO) && (machine.type != DENDY)) || (data.cfg.port->type_pad == CTRL_PAD_ORIGINAL)) {
 		state = PRESSED;
 	}
 
@@ -588,14 +588,12 @@ void dlgStdPad::s_pad_in_sequence_timer(void) {
 		return;
 	}
 
-	bt = findChild<QPushButton *>(
-			"pushButton_" + SPT(data.seq.type) + "_" + SPB(order[data.seq.counter]));
+	bt = findChild<QPushButton *>("pushButton_" + SPT(data.seq.type) + "_" + SPB(order[data.seq.counter]));
 	bt->setEnabled(true);
 	bt->click();
 }
 void dlgStdPad::s_apply_clicked(UNUSED(bool checked)) {
-	_cfg_port *cfg_port = ((_cfg_port *)((QPushButton *)sender())->property(
-		"myPointer").value<void *>());
+	_cfg_port *cfg_port = ((_cfg_port *)((QPushButton *)sender())->property("myPointer").value<void *>());
 
 	memcpy(cfg_port, &data.cfg, sizeof(_cfg_port));
 

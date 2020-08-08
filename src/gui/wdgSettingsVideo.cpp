@@ -102,6 +102,9 @@ wdgSettingsVideo::wdgSettingsVideo(QWidget *parent) : QWidget(parent) {
 	connect(checkBox_Use_integer_scaling_in_fullscreen, SIGNAL(clicked(bool)), this, SLOT(s_integer_in_fullscreen(bool)));
 	connect(checkBox_Stretch_in_fullscreen, SIGNAL(clicked(bool)), this, SLOT(s_stretch_in_fullscreen(bool)));
 
+	connect(comboBox_Screen_Rotation, SIGNAL(activated(int)), this, SLOT(s_screen_rotation(int)));
+	connect(checkBox_Text_Rotation, SIGNAL(clicked(bool)), this, SLOT(s_text_rotation(bool)));
+
 	tabWidget_Video->setCurrentIndex(0);
 }
 wdgSettingsVideo::~wdgSettingsVideo() {}
@@ -206,6 +209,11 @@ void wdgSettingsVideo::update_widget(void) {
 	checkBox_Fullscreen_in_window->setChecked(cfg->fullscreen_in_window);
 	checkBox_Use_integer_scaling_in_fullscreen->setChecked(cfg->integer_scaling);
 	checkBox_Stretch_in_fullscreen->setChecked(cfg->stretch);
+
+	{
+		srotation_set();
+		checkBox_Text_Rotation->setChecked(cfg->text_rotation);
+	}
 }
 void wdgSettingsVideo::change_rom(void) {
 	oscan_brd_mode_set();
@@ -214,6 +222,9 @@ void wdgSettingsVideo::change_rom(void) {
 
 void wdgSettingsVideo::scale_set(void) {
 	comboBox_Scale->setCurrentIndex(cfg->scale - 1);
+}
+void wdgSettingsVideo::srotation_set(void) {
+	comboBox_Screen_Rotation->setCurrentIndex(cfg->screen_rotation);
 }
 void wdgSettingsVideo::par_set(void) {
 	comboBox_PAR->setCurrentIndex(cfg->pixel_aspect_ratio);
@@ -451,7 +462,7 @@ void wdgSettingsVideo::shader_param_set(void) {
 			spin->setRange(pshd->min, pshd->max);
 			spin->setSingleStep(pshd->step);
 			spin->setValue((double)(pshd->value));
-			connect(spin, SIGNAL(valueChanged(const QString &)), this, SLOT(s_shader_param_spin(const QString &)));
+			connect(spin, SIGNAL(valueChanged(double)), this, SLOT(s_shader_param_spin(double)));
 			layout->addWidget(spin);
 			layout->setAlignment(Qt::AlignCenter);
 			layout->setContentsMargins(0, 0, 0, 0);
@@ -801,7 +812,7 @@ void wdgSettingsVideo::s_shader_file(UNUSED(bool checked)) {
 			gfx_set_screen(NO_CHANGE, NO_CHANGE, SHADER_FILE, NO_CHANGE, NO_CHANGE, FALSE, FALSE);
 			emu_thread_continue();
 		} else {
-			text_add_line_info(1, "[red]error on shader file");
+			gui_overlay_info_append_msg_precompiled(25, NULL);
 		}
 	}
 
@@ -817,18 +828,18 @@ void wdgSettingsVideo::s_shader_param_slider(int value) {
 	int index = QVariant(((QObject *)sender())->property("myIndex")).toInt();
 	int row = QVariant(((QObject *)sender())->property("myValue")).toInt();
 	_param_shd *pshd = &shader_effect.param[index];
-	double remain = pshd->initial - (pshd->step * (double)((int)(pshd->initial / pshd->step)));
-	double fvalue = pshd->min + ((pshd->step * (double)value) + remain);
+	float remain = pshd->initial - (pshd->step * (float)((int)(pshd->initial / pshd->step)));
+	float fvalue = pshd->min + ((pshd->step * (float)value) + remain);
 
-	tableWidget_Shader_Parameters->cellWidget(row, WSV_SP_SPIN)->findChild<QDoubleSpinBox *>("spin")->setValue(fvalue);
+	tableWidget_Shader_Parameters->cellWidget(row, WSV_SP_SPIN)->findChild<QDoubleSpinBox *>("spin")->setValue((double)fvalue);
 }
-void wdgSettingsVideo::s_shader_param_spin(const QString &text) {
+void wdgSettingsVideo::s_shader_param_spin(double d) {
 	int index = QVariant(((QObject *)sender())->property("myIndex")).toInt();
 	int row = QVariant(((QObject *)sender())->property("myValue")).toInt();
 	_param_shd *pshd = &shader_effect.param[index];
 	QSlider *slider = tableWidget_Shader_Parameters->cellWidget(row, WSV_SP_SLIDER)->findChild<QSlider *>("slider");
 
-	pshd->value = text.toFloat();
+	pshd->value = (float)d;
 	slider->blockSignals(true);
 	slider->setValue(((float)slider->maximum() / (pshd->max - pshd->min)) * (pshd->value - pshd->min));
 	slider->blockSignals(false);
@@ -923,7 +934,7 @@ void wdgSettingsVideo::s_palette_file(UNUSED(bool checked)) {
 			widget_Palette_Editor->palette_changed();
 			emu_thread_continue();
 		} else {
-			text_add_line_info(1, "[red]error on palette file");
+			gui_overlay_info_append_msg_precompiled(26, NULL);
 		}
 	}
 
@@ -951,12 +962,15 @@ void wdgSettingsVideo::s_interpolation(UNUSED(bool checked)) {
 }
 void wdgSettingsVideo::s_text_on_screen(UNUSED(bool checked)) {
 	cfg->txt_on_screen = !cfg->txt_on_screen;
+	gui_overlay_update();
 }
 void wdgSettingsVideo::s_show_fps(UNUSED(bool checked)) {
 	cfg->show_fps = !cfg->show_fps;
+	gui_overlay_update();
 }
 void wdgSettingsVideo::s_input_display(UNUSED(bool checked)) {
 	cfg->input_display = !cfg->input_display;
+	gui_overlay_update();
 }
 void wdgSettingsVideo::s_disable_tv_noise(UNUSED(bool checked)) {
 	cfg->disable_tv_noise = !cfg->disable_tv_noise;
@@ -983,5 +997,23 @@ void wdgSettingsVideo::s_stretch_in_fullscreen(UNUSED(bool checked)) {
 	if (cfg->fullscreen == FULLSCR) {
 		gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, FALSE, FALSE);
 	}
+	emu_thread_continue();
+}
+void wdgSettingsVideo::s_screen_rotation(int index) {
+	int rotation = index;
+
+	if (rotation == cfg->screen_rotation) {
+		return;
+	}
+
+	emu_thread_pause();
+	cfg->screen_rotation = rotation;
+	gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, TRUE, FALSE);
+	emu_thread_continue();
+}
+void wdgSettingsVideo::s_text_rotation(UNUSED(bool checked)) {
+	emu_thread_pause();
+	cfg->text_rotation = !cfg->text_rotation;
+	gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, FALSE, FALSE);
 	emu_thread_continue();
 }

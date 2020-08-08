@@ -2,11 +2,14 @@ noinst_LIBRARIES = libcore.a
 libcore_a_SOURCES = \
 	apu.c \
 	apu.h \
+	bck_states.c \
+	bck_states.h \
 	build.h \
 	cheat.c \
 	cheat.h \
 	clock.h \
 	common.h \
+	compilation_unit_orphan.h \
 	conf.h \
 	cpu.c \
 	cpu.h \
@@ -64,8 +67,6 @@ libcore_a_SOURCES = \
 	save_slot.h \
 	sha1.c \
 	sha1.h \
-	text.c \
-	text.h \
 	uncompress.c \
 	uncompress.h \
 	uncompress_selection.h \

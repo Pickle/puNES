@@ -30,6 +30,7 @@
 #include "input.h"
 #include "nsf.h"
 #include "rewind.h"
+#include "palette.h"
 
 #if defined (_WIN32)
 #define NEWLINE "\r\n"
@@ -77,6 +78,8 @@ enum set_element {
 	SET_FULLSCREEN_IN_WINDOW,
 	SET_INTEGER_FULLSCREEN,
 	SET_STRETCH_FULLSCREEN,
+	SET_SCREEN_ROTATION,
+	SET_TEXT_ROTATION,
 	SET_AUDIO_OUTPUT_DEVICE,
 	SET_AUDIO_BUFFER_FACTOR,
 	SET_SAMPLERATE,
@@ -89,6 +92,8 @@ enum set_element {
 	SET_GUI_LAST_POSITION,
 	SET_GUI_LAST_POSITION_SETTINGS,
 	SET_GUI_LANGUAGE,
+	SET_GUI_TOOLBAR_AREA,
+	SET_GUI_TOOLBAR_HIDDEN,
 	SET_APU_MASTER,
 	SET_APU_SQUARE1,
 	SET_APU_SQUARE2,
@@ -320,6 +325,12 @@ static const _opt opt_ff_velocity[] = {
 	{NULL, uL("4x"), FF_4X},
 	{NULL, uL("5x"), FF_5X}
 };
+static const _opt opt_screen_rotation[] = {
+	{NULL, uL("0"), ROTATE_0},
+	{NULL, uL("90"), ROTATE_90},
+	{NULL, uL("180"), ROTATE_180},
+	{NULL, uL("270"), ROTATE_270}
+};
 static const _opt opt_scale[] = {
 	{NULL, uL("1x"), X1},
 	{NULL, uL("2x"), X2},
@@ -434,7 +445,8 @@ static const _opt opt_languages[] = {
 	{NULL, uL("russian"), LNG_RUSSIAN},
 	{NULL, uL("spanish"), LNG_SPANISH},
 	{NULL, uL("hungarian"), LNG_HUNGARIAN},
-	{NULL, uL("turkish"), LNG_TURKISH}
+	{NULL, uL("turkish"), LNG_TURKISH},
+	{NULL, uL("portuguese"), LNG_PORTUGUESEBR}
 };
 static const _opt opt_nsf_player_effect[] = {
 	{NULL, uL("bars"),     NSF_EFFECT_BARS},
@@ -442,6 +454,12 @@ static const _opt opt_nsf_player_effect[] = {
 	{NULL, uL("raw full"), NSF_EFFECT_RAW_FULL},
 	{NULL, uL("hanning"), NSF_EFFECT_HANNING},
 	{NULL, uL("hannig full"), NSF_EFFECT_HANNING_FULL}
+};
+static const _opt opt_toolbar_area[] = {
+	{NULL, uL("top"), TLB_TOP},
+	{NULL, uL("left"), TLB_LEFT},
+	{NULL, uL("bottom"), TLB_BOTTOM},
+	{NULL, uL("right"), TLB_RIGHT}
 };
 
 static const _opt opt_slot_pgs[] = {
@@ -720,6 +738,18 @@ static const _settings main_cfg[] = {
 		{LENGTH(opt_no_yes), opt_no_yes}
 	},
 	{
+		uL("video"), uL("screen rotation"), uL("0"),
+		uL("# possible values: 0, 90, 180, 270"),
+		uL("    --screen-rotation     degree scrn rotation  : 0, 90, 180, 270"),
+		{LENGTH(opt_screen_rotation), opt_screen_rotation}
+	},
+	{
+		uL("video"), uL("text rotation"), uL("no"),
+		uL("# possible values: yes, no"),
+		NULL,
+		{LENGTH(opt_no_yes), opt_no_yes}
+	},
+	{
 		uL("audio"), uL("output device"), uL("default"),
 #if defined(__linux__)
 		uL("# possible values: default, plughw:[x,x]"),
@@ -792,10 +822,22 @@ static const _settings main_cfg[] = {
 	},
 	{
 		uL("GUI"), uL("language"), uL("english"),
-		uL("# possible values: english, italian, russian, spanish, hungarian, turkish"),
+		uL("# possible values: english, italian, russian, spanish, hungarian, turkish, portuguese"),
 		uL("    --language            GUI language          : english, italian, russian, spanish," NEWLINE)
-		uL("                                                  hungarian, turkish"),
+		uL("                                                  hungarian, turkish, portuguese"),
 		{LENGTH(opt_languages), opt_languages}
+	},
+	{
+		uL("GUI"), uL("toolbar area"), uL("top"),
+		uL("# possible values: top, bottom, left, right"),
+		NULL,
+		{LENGTH(opt_toolbar_area), opt_toolbar_area}
+	},
+	{
+		uL("GUI"), uL("toolbar hidden"), uL("no"),
+		uL("# possible values: yes, no"),
+		NULL,
+		{LENGTH(opt_no_yes), opt_no_yes}
 	},
 	{
 		uL("apu channels"), uL("master"), uL("on,100"),

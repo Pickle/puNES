@@ -26,11 +26,13 @@
 #include "gui.h"
 #include "emu.h"
 #include "info.h"
-#include "text.h"
 #include "patcher.h"
 #include "conf.h"
 
 #define GGFILE "gamegenie.rom"
+
+_gamegenie gamegenie;
+_cheats_list cheats_list;
 
 void gamegenie_init(void) {
 	memset(&gamegenie, 0x00, sizeof(gamegenie));
@@ -101,14 +103,13 @@ uTCHAR *gamegenie_check_rom_present(BYTE print_message) {
 	}
 
 	// 4) directory puNES/bios
-	usnprintf(gg_rom_file, usizeof(gg_rom_file),
-		uL("" uPERCENTs BIOS_FOLDER "/" GGFILE), info.base_folder);
+	usnprintf(gg_rom_file, usizeof(gg_rom_file), uL("" uPERCENTs BIOS_FOLDER "/" GGFILE), info.base_folder);
 	if (emu_file_exist(gg_rom_file) == EXIT_OK) {
 		goto gamegenie_check_rom_present_founded;
 	}
 
 	if (print_message) {
-		text_add_line_info(1, "[red]Game Genie rom not found");
+		gui_overlay_info_append_msg_precompiled(2, NULL);
 		fprintf(stderr, "Game Genie rom not found\n");
 	}
 
@@ -140,12 +141,12 @@ void gamegenie_load_rom(void *rom_mem) {
 		return;
 	}
 
-	ustrncpy(info.rom.file, gg_rom_file, usizeof(info.rom.file));
+	ustrncpy(info.rom.file, gg_rom_file, usizeof(info.rom.file) - 1);
 
 	if (!(fp = ufopen(info.rom.file, uL("rb")))) {
-		text_add_line_info(1, "[red]error loading Game Genie rom");
+		gui_overlay_info_append_msg_precompiled(3, NULL);
 		fprintf(stderr, "error loading Game Genie rom\n");
-		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file));
+		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file) - 1);
 		gamegenie_free_paths();
 		return;
 	}
@@ -158,7 +159,7 @@ void gamegenie_load_rom(void *rom_mem) {
 
 	if ((gg_rom_mem = (BYTE *) malloc(size)) == NULL) {
 		fclose(fp);
-		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file));
+		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file) - 1);
 		gamegenie_free_paths();
 		return;
 	}
@@ -166,7 +167,7 @@ void gamegenie_load_rom(void *rom_mem) {
 	if (fread(gg_rom_mem, 1, size, fp) != size) {
 		fclose(fp);
 		free(gg_rom_mem);
-		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file));
+		ustrncpy(info.rom.file, gamegenie.rom, usizeof(info.rom.file) - 1);
 		gamegenie_free_paths();
 		return;
 	}

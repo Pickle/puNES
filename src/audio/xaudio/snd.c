@@ -25,10 +25,11 @@
 #include "gui.h"
 #include "fps.h"
 #include "clock.h"
-#include "apu.h"
 #include "wave.h"
 #if defined (DEBUG)
 #define __inline
+#else
+#define __inline inline __attribute__((always_inline))
 #endif
 #define INITGUID
 #include <XAudio2.h>
@@ -41,7 +42,7 @@ enum snd_thread_actions {
 	ST_STOP
 };
 
-static int  snd_list_find_index_id(_snd_list_dev *list, uTCHAR *id, int size);
+static int snd_list_find_index_id(_snd_list_dev *list, uTCHAR *id, int size);
 static void snd_list_device_add(_snd_list_dev *list, uTCHAR *id, GUID *guid, uTCHAR *desc);
 static void snd_list_devices_quit(void);
 static void snd_list_devices_free(_snd_list_dev *list);
@@ -92,6 +93,12 @@ static IXAudio2VoiceCallbackVtbl voice_callbacks_vtable = {
 };
 static IXAudio2VoiceCallback voice_callbacks = { &voice_callbacks_vtable };
 static _callback_data cbd;
+
+_snd snd;
+_snd_list snd_list;
+
+void (*snd_apu_tick)(void);
+void (*snd_end_frame)(void);
 
 BYTE snd_init(void) {
 	memset(&snd, 0x00, sizeof(_snd));
@@ -601,13 +608,11 @@ static void STDMETHODCALLTYPE OnBufferStart(UNUSED(IXAudio2VoiceCallback *callba
 	WORD len = xaudio2.buffer.AudioBytes;
 	int avail = xaudio2.buffer.PlayLength;
 
-	if (snd_thread.action == ST_STOP) {
-		return;
-	}
-
 	snd_thread.in_run = TRUE;
 
-	if ((info.no_rom | info.turn_off | info.pause) || (snd.buffer.start == FALSE) || (fps.fast_forward == TRUE)) {
+	if (snd_thread.action == ST_STOP) {
+		xaudio2_wrbuf(xaudio2.source, &xaudio2.buffer, (const BYTE *)cbd.silence);
+	} else if ((info.no_rom | info.turn_off | info.pause) || (snd.buffer.start == FALSE) ||(fps.fast_forward == TRUE)) {
 		xaudio2_wrbuf(xaudio2.source, &xaudio2.buffer, (const BYTE *)cbd.silence);
 	} else if (cbd.bytes_available < len) {
 		xaudio2_wrbuf(xaudio2.source, &xaudio2.buffer, (const BYTE *)cbd.silence);

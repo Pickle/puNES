@@ -22,7 +22,6 @@
 #include "clock.h"
 #include "save_slot.h"
 #include "emu.h"
-#include "jstick.h"
 #include "shaders.h"
 #if defined (__unix__)
 #define XK_MISCELLANY
@@ -66,13 +65,13 @@ static const struct _kvSpecials {
 //	{ 0,            Qt::KeypadModifier,  Qt::Key_Period,   "NPDecimal",  271 },
 	{ 0,            Qt::KeypadModifier,  Qt::Key_Slash,    "NPDivide",   272 },
 #if defined (_WIN32)
-	{ VK_LMENU,     0,                   Qt::Key_Alt,      "Alt",        273 },
-	{ VK_RMENU,     0,                   Qt::Key_Alt,      "AltGr",      274 },
+	{ VK_LMENU,     {},                  Qt::Key_Alt,      "Alt",        273 },
+	{ VK_RMENU,     {},                  Qt::Key_Alt,      "AltGr",      274 },
 	{ 0,            Qt::NoModifier,      Qt::Key_Meta,     "Meta",       275 },
-	{ VK_LSHIFT,    0,                   Qt::Key_Shift,    "LShift",     276 },
-	{ VK_RSHIFT,    0,                   Qt::Key_Shift,    "RShift",     277 },
-	{ VK_LCONTROL,  0,                   Qt::Key_Control,  "LCtrl",      278 },
-	{ VK_RCONTROL,  0,                   Qt::Key_Control,  "RCtrl",      279 },
+	{ VK_LSHIFT,    {},                  Qt::Key_Shift,    "LShift",     276 },
+	{ VK_RSHIFT,    {},                  Qt::Key_Shift,    "RShift",     277 },
+	{ VK_LCONTROL,  {},                  Qt::Key_Control,  "LCtrl",      278 },
+	{ VK_RCONTROL,  {},                  Qt::Key_Control,  "RCtrl",      279 },
 #elif defined (__unix__)
 	/*
 	{ 0,            Qt::AltModifier,     Qt::Key_Alt,      "Alt",        273 },
@@ -86,10 +85,10 @@ static const struct _kvSpecials {
 	{ 0,            Qt::NoModifier,      Qt::Key_Alt,      "Alt",        273 },
 	{ 0,            Qt::NoModifier,      Qt::Key_AltGr,    "AltGr",      274 },
 	{ 0,            Qt::NoModifier,      Qt::Key_Meta,     "Meta",       275 },
-	{ XK_Shift_L,   0,                   Qt::Key_Shift,    "LShift",     276 },
-	{ XK_Shift_R,   0,                   Qt::Key_Shift,    "RShift",     277 },
-	{ XK_Control_L, 0,                   Qt::Key_Control,  "LCtrl",      278 },
-	{ XK_Control_R, 0,                   Qt::Key_Control,  "RCtrl",      279 },
+	{ XK_Shift_L,   {},                  Qt::Key_Shift,    "LShift",     276 },
+	{ XK_Shift_R,   {},                  Qt::Key_Shift,    "RShift",     277 },
+	{ XK_Control_L, {},                  Qt::Key_Control,  "LCtrl",      278 },
+	{ XK_Control_R, {},                  Qt::Key_Control,  "RCtrl",      279 },
 #endif
 };
 /*
@@ -712,6 +711,8 @@ void objSet::to_cfg(QString group) {
 		int_to_val(SET_FULLSCREEN_IN_WINDOW, cfg_from_file.fullscreen_in_window);
 		int_to_val(SET_INTEGER_FULLSCREEN, cfg_from_file.integer_scaling);
 		int_to_val(SET_STRETCH_FULLSCREEN, cfg_from_file.stretch);
+		int_to_val(SET_SCREEN_ROTATION, cfg_from_file.screen_rotation);
+		int_to_val(SET_TEXT_ROTATION, cfg_from_file.text_rotation);
 	}
 
 	if ((group == "audio") || (group == "all")) {
@@ -727,9 +728,11 @@ void objSet::to_cfg(QString group) {
 	if ((group == "GUI") || (group == "all")) {
 		cpy_utchar_to_val(SET_GUI_OPEN_PATH, gui.last_open_path);
 		cpy_utchar_to_val(SET_GUI_OPEN_PATCH_PATH, gui.last_open_patch_path);
-		val.replace(SET_GUI_LAST_POSITION, lastpos_val(&cfg->last_pos));
-		val.replace(SET_GUI_LAST_POSITION_SETTINGS, lastpos_val(&cfg->last_pos_settings));
+		val.replace(SET_GUI_LAST_POSITION, lastpos_val(&cfg_from_file.last_pos));
+		val.replace(SET_GUI_LAST_POSITION_SETTINGS, lastpos_val(&cfg_from_file.last_pos_settings));
 		int_to_val(SET_GUI_LANGUAGE, cfg_from_file.language);
+		int_to_val(SET_GUI_TOOLBAR_AREA, cfg_from_file.toolbar.area);
+		int_to_val(SET_GUI_TOOLBAR_HIDDEN, cfg_from_file.toolbar.hidden);
 	}
 
 	if ((group == "apu channels") || (group == "all")) {
@@ -798,6 +801,8 @@ void objSet::fr_cfg(QString group) {
 		cfg_from_file.fullscreen_in_window = val_to_int(SET_FULLSCREEN_IN_WINDOW);
 		cfg_from_file.integer_scaling = val_to_int(SET_INTEGER_FULLSCREEN);
 		cfg_from_file.stretch = val_to_int(SET_STRETCH_FULLSCREEN);
+		cfg_from_file.screen_rotation = val_to_int(SET_SCREEN_ROTATION);
+		cfg_from_file.text_rotation = val_to_int(SET_TEXT_ROTATION);
 	}
 
 	if ((group == "audio") || (group == "all")) {
@@ -813,9 +818,11 @@ void objSet::fr_cfg(QString group) {
 	if ((group == "GUI") || (group == "all")) {
 		cpy_val_to_utchar(SET_GUI_OPEN_PATH, gui.last_open_path, usizeof(gui.last_open_path));
 		cpy_val_to_utchar(SET_GUI_OPEN_PATCH_PATH, gui.last_open_patch_path, usizeof(gui.last_open_patch_path));
-		lastpos_val_to_int(SET_GUI_LAST_POSITION, &cfg->last_pos);
-		lastpos_val_to_int(SET_GUI_LAST_POSITION_SETTINGS, &cfg->last_pos_settings);
+		lastpos_val_to_int(SET_GUI_LAST_POSITION, &cfg_from_file.last_pos);
+		lastpos_val_to_int(SET_GUI_LAST_POSITION_SETTINGS, &cfg_from_file.last_pos_settings);
 		cfg_from_file.language = val_to_int(SET_GUI_LANGUAGE);
+		cfg_from_file.toolbar.area = val_to_int(SET_GUI_TOOLBAR_AREA);
+		cfg_from_file.toolbar.hidden = val_to_int(SET_GUI_TOOLBAR_HIDDEN);
 	}
 
 	if ((group == "apu channels") || (group == "all")) {
@@ -854,16 +861,19 @@ void objSet::after_the_defaults() {
 	overscan.borders = &overscan_borders[0];
 }
 
-void objSet::oscan_val_to_int(int index, _overscan_borders *ob) {
-	if (index == SET_OVERSCAN_BRD_NTSC) {
-		oscan_default(ob, NTSC);
+void objSet::oscan_default(_overscan_borders *ob, BYTE mode) {
+	QStringList def;
+
+	if (mode == NTSC) {
+		def = uQString(set->cfg[SET_OVERSCAN_BRD_NTSC].def).split(",");
 	} else {
-		oscan_default(ob, PAL);
+		def = uQString(set->cfg[SET_OVERSCAN_BRD_PAL].def).split(",");
 	}
 
-	oscan_val_to_int(index, ob, uQStringCD(val.at(index)));
-
-	val.replace(index, oscan_val(ob));
+	ob->up = def.at(0).toInt();
+	ob->down = def.at(1).toInt();
+	ob->left = def.at(2).toInt();
+	ob->right = def.at(3).toInt();
 }
 void objSet::oscan_val_to_int(UNUSED(int index), _overscan_borders *ob, const uTCHAR *buffer) {
 	QStringList splitted = uQString(buffer).split(",");
@@ -881,19 +891,16 @@ void objSet::oscan_val_to_int(UNUSED(int index), _overscan_borders *ob, const uT
 		ob->right = splitted.at(3).toInt();
 	}
 }
-void objSet::oscan_default(_overscan_borders *ob, BYTE mode) {
-	QStringList def;
-
-	if (mode == NTSC) {
-		def = uQString(set->cfg[SET_OVERSCAN_BRD_NTSC].def).split(",");
+void objSet::oscan_val_to_int(int index, _overscan_borders *ob) {
+	if (index == SET_OVERSCAN_BRD_NTSC) {
+		oscan_default(ob, NTSC);
 	} else {
-		def = uQString(set->cfg[SET_OVERSCAN_BRD_PAL].def).split(",");
+		oscan_default(ob, PAL);
 	}
 
-	ob->up = def.at(0).toInt();
-	ob->down = def.at(1).toInt();
-	ob->left = def.at(2).toInt();
-	ob->right = def.at(3).toInt();
+	oscan_val_to_int(index, ob, uQStringCD(val.at(index)));
+
+	val.replace(index, oscan_val(ob));
 }
 QString objSet::oscan_val(_overscan_borders *ob) {
 	return (QString("%1,").arg(ob->up) +
@@ -1214,7 +1221,7 @@ void objInp::set_all_input_default(_config_input *config_input, _array_pointers_
 #endif
 				break;
 			case PORT2:
-				port->type = FALSE;
+				port->type = CTRL_DISABLED;
 #if defined (_WIN32)
 				js_set_id(&port->joy_id, name_to_jsn(uL("NULL")));
 #else
@@ -1222,7 +1229,7 @@ void objInp::set_all_input_default(_config_input *config_input, _array_pointers_
 #endif
 				break;
 			default:
-				port->type = FALSE;
+				port->type = CTRL_DISABLED;
 				js_set_id(&port->joy_id, name_to_jsn(uL("NULL")));
 				break;
 		}

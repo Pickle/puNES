@@ -17,8 +17,14 @@
  */
 
 #include <QtCore/QFileInfo>
+#if defined (WITH_OPENGL)
+#include "opengl.h"
+#endif
 #include "objSettings.hpp"
 #include "conf.h"
+#if defined (WITH_D3D9)
+#include "d3d9.h"
+#endif
 
 #define CFGFILENAME "/puNES.cfg"
 #define INPFILENAME "/input.cfg"
@@ -44,6 +50,7 @@ void settings_save(void) {
 	s.list = LSET_SET;
 	s.set->wr();
 	settings_inp_save();
+	settings_shp_save();
 }
 void settings_save_GUI(void) {
 	s.list = LSET_SET;
@@ -101,9 +108,7 @@ void settings_pgs_parse(void) {
 	s.pgs = new objPgs(s.cfg, PGSFILENAME, LSET_PGS);
 
 	if (cfg->ppu_overclock) {
-		text_add_line_info(1,
-				"overclock enabled [font8]([green]VB[normal] [cyan]%d,[green]PR[normal] [cyan]%d[normal])",
-				cfg->extra_vb_scanlines, cfg->extra_pr_scanlines);
+		gui_overlay_info_append_msg_precompiled(19, NULL);
 	}
 }
 void settings_pgs_save(void) {
@@ -119,6 +124,10 @@ void settings_shp_parse(void) {
 	if (s.shp) {
 		delete(s.shp);
 		s.shp = NULL;
+	}
+
+	if (shader_effect.params == 0) {
+		return;
 	}
 
 	switch (cfg->shader) {
@@ -154,6 +163,9 @@ void settings_shp_parse(void) {
 	s.shp = new objShp(s.cfg, file, LSET_NONE);
 }
 void settings_shp_save(void) {
+	if (shader_effect.params == 0) {
+		return;
+	}
 	if (s.shp) {
 		s.list = LSET_NONE;
 		s.shp->wr();

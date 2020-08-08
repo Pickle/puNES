@@ -93,14 +93,19 @@ typedef struct _port {
 	BYTE joy_id;
 #endif
 
+	// decodifica tastiera e joystick
+	DBWORD input[2][24];
+
 	// standard controller
 	BYTE type_pad;
 	BYTE index;
 	BYTE data[24];
-	DBWORD input[2][24];
 	// turbo buttons
 	_turbo_button turbo[2];
 } _port;
+typedef struct _arkanoid {
+	int x, rdx, button;
+} _arkanoid;
 typedef struct _array_pointers_port {
 	_port *port[PORT_MAX];
 } _array_pointers_port;
@@ -111,15 +116,19 @@ typedef struct _port_funct {
 	BYTE (*input_decode_event)(BYTE mode, BYTE autorepeat, DBWORD event, BYTE type, _port *port);
 } _port_funct;
 
+extern _r4016 r4016;
+extern _port port[PORT_MAX];
+extern _port_funct port_funct[PORT_MAX];
+extern _arkanoid arkanoid[PORT_BASE];
+
+extern BYTE (*input_wr_reg)(BYTE value);
+extern BYTE (*input_rd_reg[2])(BYTE openbus, BYTE nport);
+
 #if defined (__cplusplus)
 #define EXTERNC extern "C"
 #else
 #define EXTERNC
 #endif
-
-EXTERNC _r4016 r4016;
-EXTERNC _port port[PORT_MAX];
-EXTERNC _port_funct port_funct[PORT_MAX];
 
 EXTERNC void input_init(BYTE set_cursor);
 
@@ -127,9 +136,6 @@ EXTERNC void input_wr_disabled(BYTE *value, BYTE nport);
 EXTERNC void input_rd_disabled(BYTE *value, BYTE nport, BYTE shift);
 
 EXTERNC BYTE input_draw_target();
-
-EXTERNC BYTE (*input_wr_reg)(BYTE value);
-EXTERNC BYTE (*input_rd_reg[2])(BYTE openbus, BYTE nport);
 
 #undef EXTERNC
 

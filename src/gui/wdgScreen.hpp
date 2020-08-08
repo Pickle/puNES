@@ -31,6 +31,22 @@
 #endif
 #include "gui.h"
 
+typedef struct _wdgScreen_keyboard_event {
+	_wdgScreen_keyboard_event(BYTE md, BYTE ar, DBWORD ev, BYTE ty)
+	: mode(md), autorepeat(ar), event(ev), type(ty) {}
+	BYTE mode;
+	BYTE autorepeat;
+	DBWORD event;
+	BYTE type;
+} _wdgScreen_keyboard_event;
+typedef struct _wdgScreen_mouse_event {
+	_wdgScreen_mouse_event(QEvent::Type ty, Qt::MouseButton bt, int xmov, int ymov)
+	: type(ty), button(bt), x(xmov), y(ymov) {}
+	QEvent::Type type;
+	Qt::MouseButton button;
+	int x, y;
+} _wdgScreen_mouse_event;
+
 class wdgScreen : public QWidget {
 		Q_OBJECT
 
@@ -40,6 +56,13 @@ class wdgScreen : public QWidget {
 #elif defined (WITH_D3D9)
 		wdgD3D9 *wd3d9;
 #endif
+		struct _events {
+			// mutex per la gestione degli eventi
+			QMutex mutex;
+			// lista degli eventi di input da processare
+			QList<_wdgScreen_keyboard_event> keyb;
+			QList<_wdgScreen_mouse_event> mouse;
+		} events;
 
 	private:
 		QCursor *target;

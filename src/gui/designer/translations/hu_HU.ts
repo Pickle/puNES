@@ -662,6 +662,14 @@
       <source>&amp;Toggle GUI in window</source>
       <translation>GUI ki/be kapcsolása ablakos módban</translation>
     </message>
+    <message>
+      <source>Save Unalte&amp;red NES screen</source>
+      <translation>Változatlan NES képe&amp;rnyő mentése</translation>
+    </message>
+    <message>
+      <source>Widgets</source>
+      <translation>Elemek</translation>
+    </message>
   </context>
   <context>
     <name>objCheat</name>
@@ -676,6 +684,149 @@
     <message>
       <source>The file is in read only mode</source>
       <translation>A fájl csak olvasható módban van</translation>
+    </message>
+  </context>
+  <context>
+    <name>overlayWidgetInfo</name>
+    <message>
+      <source>start wav recording</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>wav felvétel elindítása</translation>
+    </message>
+    <message>
+      <source>stop wav recording</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>wav felvétel megállítása</translation>
+    </message>
+    <message>
+      <source>[red]Game Genie rom not found[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]Game Genie ROM nem található[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading Game Genie rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba Game Genie ROM betöltése közben[normal]</translation>
+    </message>
+    <message>
+      <source>[red]Illegal Opcode[normal] [yellow]0x%1[normal] at [yellow]0x%2[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]Érvénytelen utasítás[normal] [yellow]0x%1[normal] itt [yellow]0x%2[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba ROM betöltése közben[normal]</translation>
+    </message>
+    <message>
+      <source>[red]FDS bios not found[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]FDS BIOS nem található[normal]</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [yellow]ejected[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>lemez [cyan]%1[normal] [cyan]%2[normal]. oldala [yellow]kiadva[normal]</translation>
+    </message>
+    <message>
+      <source>you must [yellow]eject[normal] disk first</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>előbb [yellow]vedd ki[normal] a lemezt</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [green]inserted[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>lemez [cyan]%1[normal] [cyan]%2[normal]. oldala [green]behelyezve[normal]</translation>
+    </message>
+    <message>
+      <source>disk [cyan]%1[normal] side [cyan]%2[normal] [brown]selected[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>lemez [cyan]%1[normal] [cyan]%2[normal]. oldala [green]kiválasztva[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]mapper[normal] [brown]%1[normal] [yellow]not supported[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>a [yellow]mapper[normal] [brown]%1[normal] [yellow]nincs támogatva[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error loading patch file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba patchfájl betöltése közben[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]save is impossible in Game Genie menu[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]a mentés lehetetlen a Game Genie menüben[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]movie playback interrupted[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]filmlejátszás megszakítva[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error[normal] loading state</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba[normal] állás betöltése közben</translation>
+    </message>
+    <message>
+      <source>[red]state file is not for this rom[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]az állás nem ehhez a ROM-hoz való[normal]</translation>
+    </message>
+    <message>
+      <source>[green]%1[normal] cheat active</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[green]%1[normal] csalás aktív</translation>
+    </message>
+    <message>
+      <source>[green]%1[normal] cheats active</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[green]%1[normal] csalás aktív</translation>
+    </message>
+    <message>
+      <source>overclock enabled [green]VB[normal] [cyan]%1[normal], [green]PR[normal] [cyan]%2[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>órajelhúzás bekapcsolva [green]VB[normal] [cyan]%1[normal], [green]PR[normal] [cyan]%2[normal]</translation>
+    </message>
+    <message>
+      <source>[yellow]silence, the movie has begun[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[yellow]csend, a film elindult[normal]</translation>
+    </message>
+    <message>
+      <source>The End</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>Vége</translation>
+    </message>
+    <message>
+      <source>switched to [green]%1[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>átváltva ide: [green]%1[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on game genie rom file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba a Game Genie ROM-ban[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on FDS bios file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba az FDS BIOS fájlban[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on shader file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba a shader fájlban[normal]</translation>
+    </message>
+    <message>
+      <source>[red]error on palette file[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hiba a palettafájlban[normal]</translation>
+    </message>
+    <message>
+      <source>[red]errors[normal] on shader, use [green]&apos;No shader&apos;[normal]</source>
+      <extracomment>Do not translate the words contained between parentheses (example: [red] or [normal]) are tags that have a specific meaning and do not traslate %1 and %2</extracomment>
+      <translation>[red]hibák[normal] a shaderben, használd a [green]&apos;Nincs shader&apos;[normal]-t</translation>
     </message>
   </context>
   <context>
@@ -931,6 +1082,56 @@
     </message>
   </context>
   <context>
+    <name>wdgRewind</name>
+    <message>
+      <source>Forward (single frame)</source>
+      <translation>Előre (egy képkocka)</translation>
+    </message>
+    <message>
+      <source>Rewind (single frame)</source>
+      <translation>Vissza (egy képkocka)</translation>
+    </message>
+    <message>
+      <source>Pause</source>
+      <translation>Szünet</translation>
+    </message>
+    <message>
+      <source>Fast forward (from 1x to 8x)</source>
+      <translation>Gyors előretekerés (1x-8x)</translation>
+    </message>
+    <message>
+      <source>Fast rewind (from 1x to 8x)</source>
+      <translation>Gyors visszatekerés (1x-8x)</translation>
+    </message>
+    <message>
+      <source>Play</source>
+      <translation>Lejátszás</translation>
+    </message>
+    <message>
+      <source>Rewind</source>
+      <translation>Visszatekerés</translation>
+    </message>
+  </context>
+  <context>
+    <name>wdgRotateScreen</name>
+    <message>
+      <source>Rotate the screen 90 degrees to the Right</source>
+      <translation>Képernyő forgatása 90 fokkal jobbra</translation>
+    </message>
+    <message>
+      <source>Rotate the screen 90 degrees to the left</source>
+      <translation>Képernyő forgatása 90 fokkal balra</translation>
+    </message>
+    <message>
+      <source>Current degree of rotation</source>
+      <translation>Forgatás jelenleg</translation>
+    </message>
+    <message>
+      <source>Rotate Screen</source>
+      <translation>Képernyő forgatása</translation>
+    </message>
+  </context>
+  <context>
     <name>wdgSettingsAudio</name>
     <message>
       <source>Output Devices</source>
@@ -954,7 +1155,7 @@
     </message>
     <message>
       <source>0</source>
-      <translation type="unfinished"/>
+      <translation>0</translation>
     </message>
     <message>
       <source>1 (Default)</source>
@@ -1298,6 +1499,10 @@
       <source>Turkish</source>
       <translation>Török</translation>
     </message>
+    <message>
+      <source>Portuguese (Brazil)</source>
+      <translation>Portugál (Brazília)</translation>
+    </message>
   </context>
   <context>
     <name>wdgSettingsInput</name>
@@ -1436,6 +1641,10 @@
     <message>
       <source>Joystick</source>
       <translation>Joystick</translation>
+    </message>
+    <message>
+      <source>Unset all</source>
+      <translation>Beállítások visszavonása</translation>
     </message>
   </context>
   <context>
@@ -1863,6 +2072,30 @@
       <source>Use integer scaling in fullscreen</source>
       <translation>Egész alapú skálázás teljes képernyőn</translation>
     </message>
+    <message>
+      <source>Screen rotation</source>
+      <translation>Képernyő forgatása</translation>
+    </message>
+    <message>
+      <source>0 degrees</source>
+      <translation>0 fok</translation>
+    </message>
+    <message>
+      <source>90 degrees</source>
+      <translation>90 fok</translation>
+    </message>
+    <message>
+      <source>180 degrees</source>
+      <translation>180 fok</translation>
+    </message>
+    <message>
+      <source>270 degrees</source>
+      <translation>270 fok</translation>
+    </message>
+    <message>
+      <source>Also rotate the text on screen</source>
+      <translation>A szöveget is forgassa a képernyőn</translation>
+    </message>
   </context>
   <context>
     <name>wdgState</name>
@@ -1875,12 +2108,20 @@
       <translation>Mentéshely %1</translation>
     </message>
     <message>
-      <source>Save</source>
-      <translation>Mentés</translation>
+      <source>Save state</source>
+      <translation>Állás mentése</translation>
     </message>
     <message>
-      <source>Load</source>
-      <translation>Töltés</translation>
+      <source>Save/Load State</source>
+      <translation>Állás töltése/mentése</translation>
+    </message>
+    <message>
+      <source>Slot state</source>
+      <translation>Állás</translation>
+    </message>
+    <message>
+      <source>Load state</source>
+      <translation>Állás töltése</translation>
     </message>
   </context>
 </TS>

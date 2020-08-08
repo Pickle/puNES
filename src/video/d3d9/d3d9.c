@@ -20,7 +20,6 @@
  */
 
 #include "d3d9.h"
-#include "video/gfx_thread.h"
 #include "info.h"
 #include "gui.h"
 #include "conf.h"
@@ -41,7 +40,7 @@ static BYTE d3d9_device_create(UINT width, UINT height);
 static void d3d9_context_delete(void);
 static void d3d9_screenshot(void);
 static BYTE d3d9_texture_create(_texture *texture, UINT index);
-static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h, BOOL text);
+static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h, BOOL overlay);
 static BYTE d3d9_texture_lut_create(_lut *lut, UINT index);
 static void d3d9_surface_clean(LPDIRECT3DSURFACE9 *surface, UINT width, UINT height);
 static BYTE d3d9_shader_init(UINT pass, _shader *shd, const uTCHAR *path, const char *code);
@@ -51,11 +50,13 @@ static void d3d9_shader_uni_texture_clear(_shader_uniforms_tex *sut);
 static void d3d9_shader_uni_texture(_shader_uniforms_tex *sut, _shader_prg_cg *prg, char *fmt, ...);
 static CGparameter d3d9_cg_find_param(CGparameter prm, const char *name);
 static BYTE d3d9_vertex_declaration_create(_shader *shd);
-static void d3d9_vertex_buffer_set(_shader *shd,  _viewport *vp, _texture_rect *prev);
+static void d3d9_vertex_buffer_set(_shader *shd,  _viewport *vp, _texture_rect *prev, BYTE last_pass);
 INLINE static void d3d9_viewport_set(DWORD x, DWORD y, DWORD w, DWORD h);
 INLINE D3DTEXTUREFILTERTYPE d3d9_shader_filter(UINT type);
-INLINE static void d3d9_shader_params_text_set(_shader *shd);
+INLINE static void d3d9_shader_params_overlay_set(_shader *shd);
 INLINE static void d3d9_shader_param_set(const _texture *texture, UINT fcountmod, UINT fcount);
+
+_d3d9 d3d9;
 
 BYTE d3d9_init(void) {
 	memset(&d3d9, 0x00, sizeof(d3d9));
@@ -218,14 +219,25 @@ BYTE d3d9_context_create(void) {
 
 	d3d9_context_delete();
 
+	if (!cfg->fullscreen && ((cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270))) {
+		d3d9.video_mode.w = gfx.h[VIDEO_MODE];
+		d3d9.video_mode.h = gfx.w[VIDEO_MODE];
+	} else {
+		d3d9.video_mode.w = gfx.w[VIDEO_MODE];
+		d3d9.video_mode.h = gfx.h[VIDEO_MODE];
+	}
+
+	d3d9.video_mode.w *= gfx.device_pixel_ratio;
+	d3d9.video_mode.h *= gfx.device_pixel_ratio;
+
 	if (overscan.enabled && (!cfg->oscan_black_borders && !cfg->fullscreen)) {
 		// visto che lavorero' con texture piu' grandi del video mode
 		// setto un backbuffer piu' grande.
-		w = gfx.w[VIDEO_MODE] * 2;
-		h = gfx.h[VIDEO_MODE] * 2;
+		w = d3d9.video_mode.w * 2;
+		h = d3d9.video_mode.h * 2;
 	} else {
-		w = gfx.w[VIDEO_MODE];
-		h = gfx.h[VIDEO_MODE];
+		w = d3d9.video_mode.w;
+		h = d3d9.video_mode.h;
 	}
 
 	if (d3d9_device_create(w, h) == EXIT_ERROR) {
@@ -266,69 +278,108 @@ BYTE d3d9_context_create(void) {
 
 		vp->x = 0;
 		vp->y = 0;
-		vp->w = gfx.w[VIDEO_MODE];
-		vp->h = gfx.h[VIDEO_MODE];
-
-		if (overscan.enabled && (!cfg->oscan_black_borders && !cfg->fullscreen)) {
-			vp->x = (-overscan.borders->left * gfx.width_pixel) * gfx.pixel_aspect_ratio;
-			vp->y = (-overscan.borders->up * cfg->scale);
-			vp->w = gfx.w[NO_OVERSCAN] * gfx.pixel_aspect_ratio;
-			vp->h = gfx.h[NO_OVERSCAN];
-		}
+		vp->w = gfx.w[VIDEO_MODE] * gfx.device_pixel_ratio;
+		vp->h = gfx.h[VIDEO_MODE] * gfx.device_pixel_ratio;
 
 		// configuro l'aspect ratio del fullscreen
 		if (cfg->fullscreen) {
+			int mw = (cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270) ?
+				_SCR_LINES_NOBRD : _SCR_ROWS_NOBRD;
+			int mh = (cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270) ?
+				_SCR_ROWS_NOBRD : _SCR_LINES_NOBRD;
+
 			if (!cfg->stretch) {
 				if (cfg->integer_scaling) {
-					int mw = _SCR_ROWS_NOBRD;
-					int mh = _SCR_LINES_NOBRD;
-					int mul = gfx.w[VIDEO_MODE] > gfx.h[VIDEO_MODE] ?
-						(gfx.h[VIDEO_MODE] - (gfx.h[VIDEO_MODE] % mh)) / mh :
-						(gfx.w[VIDEO_MODE] - (gfx.w[VIDEO_MODE] % mw)) / mw;
+					int mul = d3d9.video_mode.w > d3d9.video_mode.h ?
+						(d3d9.video_mode.h - (d3d9.video_mode.h % mh)) / mh :
+						(d3d9.video_mode.w - (d3d9.video_mode.w % mw)) / mw;
 
 					vp->w = mw * mul;
 					vp->h = mh * mul;
 				} else {
-					float mw = _SCR_ROWS_NOBRD;
-					float mh = _SCR_LINES_NOBRD;
-					float mul = mw / mh ;
+					float mul = (float)mw / (float)mh ;
 
-					if (gfx.w[VIDEO_MODE] > gfx.h[VIDEO_MODE]) {
-						vp->w = (int)((float)gfx.h[VIDEO_MODE] * mul);
+					if (d3d9.video_mode.w > d3d9.video_mode.h) {
+						vp->w = (int)((float)d3d9.video_mode.h * mul);
 					} else {
-						vp->h = (int)((float)gfx.w[VIDEO_MODE] / mul);
+						vp->h = (int)((float)d3d9.video_mode.w / mul);
 					}
 				}
-				vp->x = (gfx.w[VIDEO_MODE] - vp->w) >> 1;
-				vp->y = (gfx.h[VIDEO_MODE] - vp->h) >> 1;
+				vp->x = (d3d9.video_mode.w - vp->w) >> 1;
+				vp->y = (d3d9.video_mode.h - vp->h) >> 1;
 			}
 
 			if (overscan.enabled && (cfg->oscan_black_borders_fscr == FALSE)) {
 				float brd_l_x, brd_r_x, brd_u_y, brd_d_y;
 				float ratio_x, ratio_y;
 
-				ratio_x = (float)vp->w / _SCR_ROWS_NOBRD;
-				ratio_y = (float)vp->h / _SCR_LINES_NOBRD;
-				brd_l_x = (float)overscan.borders->left * ratio_x;
-				brd_r_x = (float)overscan.borders->right * ratio_x;
-				brd_u_y = (float)overscan.borders->up * ratio_y;
-				brd_d_y = (float)overscan.borders->down * ratio_y;
+				ratio_x = (float)vp->w / (float)mw;
+				ratio_y = (float)vp->h / (float)mh;
+
+				switch (cfg->screen_rotation) {
+					default:
+					case ROTATE_0:
+						brd_l_x = (float)overscan.borders->left * ratio_x;
+						brd_r_x = (float)overscan.borders->right * ratio_x;
+						brd_u_y = (float)overscan.borders->up * ratio_y;
+						brd_d_y = (float)overscan.borders->down * ratio_y;
+						break;
+					case ROTATE_90:
+						brd_l_x = (float)overscan.borders->down * ratio_y;
+						brd_r_x = (float)overscan.borders->up * ratio_y;
+						brd_u_y = (float)overscan.borders->left * ratio_x;
+						brd_d_y = (float)overscan.borders->right * ratio_x;
+						break;
+					case ROTATE_180:
+						brd_l_x = (float)overscan.borders->right * ratio_x;
+						brd_r_x = (float)overscan.borders->left * ratio_x;
+						brd_u_y = (float)overscan.borders->down * ratio_y;
+						brd_d_y = (float)overscan.borders->up * ratio_y;
+						break;
+					case ROTATE_270:
+						brd_l_x = (float)overscan.borders->up * ratio_y;
+						brd_r_x = (float)overscan.borders->down * ratio_y;
+						brd_u_y = (float)overscan.borders->right * ratio_x;
+						brd_d_y = (float)overscan.borders->left * ratio_x;
+						break;
+				}
 
 				d3d9.viewp.left = brd_l_x;
 				d3d9.viewp.top = brd_u_y;
-				d3d9.viewp.right = gfx.w[VIDEO_MODE] - brd_r_x;
-				d3d9.viewp.bottom = gfx.h[VIDEO_MODE] - brd_d_y;
+				d3d9.viewp.right = d3d9.video_mode.w - brd_r_x;
+				d3d9.viewp.bottom = d3d9.video_mode.h - brd_d_y;
 			} else {
 				d3d9.viewp.left = 0;
 				d3d9.viewp.top = 0;
-				d3d9.viewp.right = gfx.w[VIDEO_MODE];
-				d3d9.viewp.bottom = gfx.h[VIDEO_MODE];
+				d3d9.viewp.right = d3d9.video_mode.w;
+				d3d9.viewp.bottom = d3d9.video_mode.h;
 			}
 		} else {
+			if (overscan.enabled && !cfg->oscan_black_borders) {
+				BYTE h = (cfg->screen_rotation == ROTATE_180) || (cfg->screen_rotation == ROTATE_270) ?
+					overscan.borders->right : overscan.borders->left;
+				BYTE v = (cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_180) ?
+					overscan.borders->down : overscan.borders->up;
+
+				vp->x = ((-h * gfx.width_pixel) * gfx.pixel_aspect_ratio) * gfx.device_pixel_ratio;
+				vp->y = (-v * cfg->scale) * gfx.device_pixel_ratio;
+				vp->w = (gfx.w[NO_OVERSCAN] * gfx.pixel_aspect_ratio) * gfx.device_pixel_ratio;
+				vp->h = gfx.h[NO_OVERSCAN] * gfx.device_pixel_ratio;
+			}
+
+			if ((cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270)) {
+				int x = vp->x, w = vp->w;
+
+				vp->x = vp->y;
+				vp->y = x;
+				vp->w = vp->h;
+				vp->h = w;
+			}
+
 			d3d9.viewp.left = -vp->x;
 			d3d9.viewp.top = -vp->y;
-			d3d9.viewp.right = gfx.w[VIDEO_MODE] + d3d9.viewp.left;
-			d3d9.viewp.bottom = gfx.h[VIDEO_MODE] + d3d9.viewp.top;
+			d3d9.viewp.right = d3d9.video_mode.w + d3d9.viewp.left;
+			d3d9.viewp.bottom = d3d9.video_mode.h + d3d9.viewp.top;
 		}
 	}
 
@@ -378,9 +429,10 @@ BYTE d3d9_context_create(void) {
 		}
 	}
 
-	// testo
+	// overlay
 	{
-		int tw, th;
+		BYTE rotate = FALSE;
+		int ow, oh;
 
 		// setto il necessario per il blending
 		IDirect3DDevice9_SetRenderState(d3d9.adapter->dev, D3DRS_BLENDOP, D3DBLENDOP_ADD);
@@ -394,26 +446,44 @@ BYTE d3d9_context_create(void) {
 				div = 1.0f;
 			}
 
-			tw = gfx.w[VIDEO_MODE] / div;
-			th = gfx.h[VIDEO_MODE] / div;
-		} else if (cfg->scale == 1) {
-			tw = gfx.w[VIDEO_MODE];
-			th = gfx.h[VIDEO_MODE];
+			ow = gfx.w[VIDEO_MODE] / div;
+			oh = gfx.h[VIDEO_MODE] / div;
 		} else {
-			tw = _SCR_ROWS_NOBRD * 2;
-			th = _SCR_LINES_NOBRD * 2;
+			ow = _SCR_ROWS_NOBRD * 2;
+			oh = _SCR_LINES_NOBRD * 2;
 		}
 
-		d3d9_texture_simple_create(&d3d9.text, tw, th, TRUE);
+		if (gfx.w[VIDEO_MODE] < ow) {
+			ow = gfx.w[VIDEO_MODE];
+		}
+		if (gfx.h[VIDEO_MODE] < oh) {
+			oh = gfx.h[VIDEO_MODE];
+		}
 
-		text.w = d3d9.text.rect.w;
-		text.h = d3d9.text.rect.h;
+		if ((cfg->screen_rotation == ROTATE_90) || (cfg->screen_rotation == ROTATE_270)) {
+			if (cfg->text_rotation == TRUE) {
+				if (cfg->fullscreen) {
+					rotate = TRUE;
+				}
+			} else if (!cfg->fullscreen) {
+				rotate = TRUE;
+			}
+		}
 
-		gfx_text_reset();
+		if (rotate == TRUE) {
+			int tmp = ow;
 
-		fprintf(stderr, "D3D9: Setting text pass.\n");
+			ow = oh;
+			oh = tmp;
+		}
 
-		if (d3d9_shader_init(0, &d3d9.text.shader, NULL, shader_code_blend()) == EXIT_ERROR) {
+		d3d9_texture_simple_create(&d3d9.overlay, ow * gfx.device_pixel_ratio, oh * gfx.device_pixel_ratio, TRUE);
+
+		gui_overlay_set_size(ow, oh);
+
+		fprintf(stderr, "D3D9: Setting overlay pass.\n");
+
+		if (d3d9_shader_init(0, &d3d9.overlay.shader, NULL, shader_code_blend()) == EXIT_ERROR) {
 			d3d9_context_delete();
 			return (EXIT_ERROR);
 		}
@@ -438,7 +508,7 @@ BYTE d3d9_context_create(void) {
 		shd->info.output_size.x = (FLOAT)texture->vp.w;
 		shd->info.output_size.y = (FLOAT)texture->vp.h;
 
-		d3d9_vertex_buffer_set(shd, &texture->vp, prev);
+		d3d9_vertex_buffer_set(shd, &texture->vp, prev, i == shader_effect.last_pass);
 	}
 
 	umemcpy(gfx.last_shader_file, cfg->shader_file, usizeof(gfx.last_shader_file));
@@ -467,14 +537,13 @@ void d3d9_draw_scene(void) {
 		if (i == shader_effect.last_pass) {
 			IDirect3DDevice9_SetRenderTarget(d3d9.adapter->dev, 0, back_buffer);
 			// pulisco l'intero schermo
-			d3d9_viewport_set(0, 0, gfx.w[VIDEO_MODE], gfx.h[VIDEO_MODE]);
+			d3d9_viewport_set(0, 0, d3d9.video_mode.w, d3d9.video_mode.h);
 		} else {
 			IDirect3DDevice9_SetRenderTarget(d3d9.adapter->dev, 0, texture->map0);
 			// pulisco l'fbo
 			d3d9_viewport_set(0, 0, texture->rect.w, texture->rect.h);
 		}
-		IDirect3DDevice9_Clear(d3d9.adapter->dev, 0, NULL, D3DCLEAR_TARGET,
-			D3DCOLOR_ARGB(255, 0, 0, 0), 1.0f, 0);
+		IDirect3DDevice9_Clear(d3d9.adapter->dev, 0, NULL, D3DCLEAR_TARGET, D3DCOLOR_ARGB(255, 0, 0, 0), 1.0f, 0);
 
 		// ora setto il viewport corretto
 		if (cfg->fullscreen) {
@@ -487,9 +556,9 @@ void d3d9_draw_scene(void) {
 		cgD3D9BindProgram(texture->shader.prg.v);
 
 		if (i == 0) {
-			IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 * )scrtex->data);
+			IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)scrtex->data);
 		} else {
-			IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 * )d3d9.texture[i - 1].data);
+			IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)d3d9.texture[i - 1].data);
 		}
 
 		IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_MAGFILTER, filter);
@@ -518,34 +587,31 @@ void d3d9_draw_scene(void) {
 		d3d9.texture[shader_effect.feedback_pass].map0 = map0;
 	}
 
-	// rendering del testo
-	text_rendering(TRUE);
+	// rendering dell'overlay
+	gui_overlay_blit();
 
-	// text
-	if (cfg->txt_on_screen && text.on_screen) {
+	// overlay
+	if (cfg->txt_on_screen && (gui_overlay_is_updated() == TRUE)) {
 		float vpx, vpy, vpw, vph;
 
-		// aggiorno la texture del testo
-		IDirect3DDevice9_UpdateSurface(d3d9.adapter->dev, d3d9.text.offscreen, NULL, d3d9.text.map0, NULL);
-
-		vpx = d3d9.viewp.left * gfx.device_pixel_ratio;
-		vpy = d3d9.viewp.top * gfx.device_pixel_ratio;
-		vpw = (d3d9.viewp.right - d3d9.viewp.left) * gfx.device_pixel_ratio;
-		vph = (d3d9.viewp.bottom - d3d9.viewp.top) * gfx.device_pixel_ratio;
+		vpx = d3d9.viewp.left;
+		vpy = d3d9.viewp.top;
+		vpw = d3d9.viewp.right - d3d9.viewp.left;
+		vph = d3d9.viewp.bottom - d3d9.viewp.top;
 
 		d3d9_viewport_set(vpx, vpy, vpw, vph);
 
-		cgD3D9BindProgram(d3d9.text.shader.prg.f);
-		cgD3D9BindProgram(d3d9.text.shader.prg.v);
+		cgD3D9BindProgram(d3d9.overlay.shader.prg.f);
+		cgD3D9BindProgram(d3d9.overlay.shader.prg.v);
 
-		IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)d3d9.text.data);
+		IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)d3d9.overlay.data);
 
 		IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_MAGFILTER, D3DTEXF_LINEAR);
 		IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_MINFILTER, D3DTEXF_LINEAR);
 
-		IDirect3DDevice9_SetVertexDeclaration(d3d9.adapter->dev, d3d9.text.shader.vd);
+		IDirect3DDevice9_SetVertexDeclaration(d3d9.adapter->dev, d3d9.overlay.shader.vd);
 
-		d3d9_shader_params_text_set(&d3d9.text.shader);
+		d3d9_shader_params_overlay_set(&d3d9.overlay.shader);
 
 		IDirect3DDevice9_SetRenderState(d3d9.adapter->dev, D3DRS_ALPHABLENDENABLE, TRUE);
 		IDirect3DDevice9_BeginScene(d3d9.adapter->dev);
@@ -657,6 +723,7 @@ static void d3d9_context_delete(void) {
 
 	for (i = 0; i < LENGTH(d3d9.screen.tex); i++) {
 		_texture_simple *texture = &d3d9.screen.tex[i];
+
 		if (texture->offscreen) {
 			IDirect3DSurface9_Release(texture->offscreen);
 			texture->offscreen = NULL;
@@ -680,27 +747,27 @@ static void d3d9_context_delete(void) {
 	}
 
 	{
-		if (d3d9.text.offscreen) {
-			IDirect3DSurface9_Release(d3d9.text.offscreen);
-			d3d9.text.offscreen = NULL;
+		if (d3d9.overlay.offscreen) {
+			IDirect3DSurface9_Release(d3d9.overlay.offscreen);
+			d3d9.overlay.offscreen = NULL;
 		}
-		if (d3d9.text.map0) {
-			IDirect3DSurface9_Release(d3d9.text.map0);
-			d3d9.text.map0 = NULL;
+		if (d3d9.overlay.map0) {
+			IDirect3DSurface9_Release(d3d9.overlay.map0);
+			d3d9.overlay.map0 = NULL;
 		}
-		if (d3d9.text.data) {
-			IDirect3DTexture9_Release(d3d9.text.data);
-			d3d9.text.data = NULL;
+		if (d3d9.overlay.data) {
+			IDirect3DTexture9_Release(d3d9.overlay.data);
+			d3d9.overlay.data = NULL;
 		}
-		if (d3d9.text.shader.vd) {
-			IDirect3DVertexDeclaration9_Release(d3d9.text.shader.vd);
-			d3d9.text.shader.vd = NULL;
+		if (d3d9.overlay.shader.vd) {
+			IDirect3DVertexDeclaration9_Release(d3d9.overlay.shader.vd);
+			d3d9.overlay.shader.vd = NULL;
 		}
-		if (d3d9.text.shader.quad) {
-			IDirect3DVertexBuffer9_Release(d3d9.text.shader.quad);
-			d3d9.text.shader.quad = NULL;
+		if (d3d9.overlay.shader.quad) {
+			IDirect3DVertexBuffer9_Release(d3d9.overlay.shader.quad);
+			d3d9.overlay.shader.quad = NULL;
 		}
-		d3d9_shader_delete(&d3d9.text.shader);
+		d3d9_shader_delete(&d3d9.overlay.shader);
 	}
 
 	{
@@ -811,9 +878,11 @@ static void d3d9_screenshot(void) {
 		if ((buffer = malloc(SCR_ROWS * SCR_LINES * sizeof(uint32_t))) == NULL) {
 			return;
 		}
+		emu_pause(TRUE);
 		scale_surface_screenshoot_1x(SCR_ROWS * sizeof(uint32_t), buffer);
 		gui_save_screenshot(SCR_ROWS, SCR_LINES, buffer, FALSE);
 		free(buffer);
+		emu_pause(FALSE);
 	}
 }
 static BYTE d3d9_texture_create(_texture *texture, UINT index) {
@@ -906,10 +975,10 @@ static BYTE d3d9_texture_create(_texture *texture, UINT index) {
 	}
 
 	if (index == shader_effect.last_pass) {
-		vp->x = gfx.vp.x * gfx.device_pixel_ratio;
-		vp->y = gfx.vp.y * gfx.device_pixel_ratio;
-		vp->w = gfx.vp.w * gfx.device_pixel_ratio;
-		vp->h = gfx.vp.h * gfx.device_pixel_ratio;
+		vp->x = gfx.vp.x;
+		vp->y = gfx.vp.y;
+		vp->w = gfx.vp.w;
+		vp->h = gfx.vp.h;
 	} else {
 		vp->x = 0;
 		vp->y = 0;
@@ -939,14 +1008,14 @@ static BYTE d3d9_texture_create(_texture *texture, UINT index) {
 	// versione per windows XP non mi passano una superficia "pulita".
 	d3d9_surface_clean(&texture->map0, rect->w, rect->h);
 
-	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *) texture->data);
+	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)texture->data);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_ADDRESSU, D3DTADDRESS_BORDER);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_ADDRESSV, D3DTADDRESS_BORDER);
 	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, NULL);
 
 	return (EXIT_OK);
 }
-static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h, BOOL text) {
+static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h, BOOL overlay) {
 	_texture_rect *rect = &texture->rect;
 	_shader *shd = &texture->shader;
 	_viewport vp = { 0, 0, w, h };
@@ -955,7 +1024,7 @@ static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h,
 	rect->base.w = w;
 	rect->base.h = h;
 
-	if (!text) {
+	if (!overlay) {
 #if defined (FH_SHADERS_GEST)
 		rect->w = emu_power_of_two(rect->base.w);
 		rect->h = emu_power_of_two(rect->base.h);
@@ -1016,29 +1085,37 @@ static BYTE d3d9_texture_simple_create(_texture_simple *texture, UINT w, UINT h,
 	// versione per windows XP non mi passano una superficia "pulita".
 	d3d9_surface_clean(&texture->map0, rect->w, rect->h);
 
-	// creo la superficie temporanea le cui dimensioni non devono essere "POWerate"
-	if (IDirect3DDevice9_CreateOffscreenPlainSurface(d3d9.adapter->dev,
-		rect->base.w,
-		rect->base.h,
-		D3DFMT_A8R8G8B8,
-		D3DPOOL_SYSTEMMEM,
-		&texture->offscreen,
-		NULL) != D3D_OK) {
-		MessageBox(NULL, "Unable to create the memory surface", "Error!", MB_ICONEXCLAMATION | MB_OK);
-		return (EXIT_ERROR);
+	if (!overlay) {
+		// creo la superficie temporanea le cui dimensioni non devono essere "POWerate"
+		if (IDirect3DDevice9_CreateOffscreenPlainSurface(d3d9.adapter->dev,
+			rect->base.w,
+			rect->base.h,
+			D3DFMT_A8R8G8B8,
+			D3DPOOL_SYSTEMMEM,
+			&texture->offscreen,
+			NULL) != D3D_OK) {
+			MessageBox(NULL, "Unable to create the memory surface", "Error!", MB_ICONEXCLAMATION | MB_OK);
+			return (EXIT_ERROR);
+		}
+
+		// cancello la superficie
+		d3d9_surface_clean(&texture->offscreen, rect->base.w, rect->base.h);
+	} else {
+		texture->offscreen = NULL;
 	}
 
-	// cancello la superficie
-	d3d9_surface_clean(&texture->offscreen, rect->base.w, rect->base.h);
-
-	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *) texture->data);
+	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, (IDirect3DBaseTexture9 *)texture->data);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_ADDRESSU, D3DTADDRESS_BORDER);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_ADDRESSV, D3DTADDRESS_BORDER);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_MINFILTER, flt);
 	IDirect3DDevice9_SetSamplerState(d3d9.adapter->dev, 0, D3DSAMP_MAGFILTER, flt);
 	IDirect3DDevice9_SetTexture(d3d9.adapter->dev, 0, NULL);
 
-	d3d9_vertex_buffer_set(shd, &vp, rect);
+	if ((overlay == TRUE) && (cfg->text_rotation == TRUE)) {
+		d3d9_vertex_buffer_set(shd, &vp, rect, TRUE);
+	} else {
+		d3d9_vertex_buffer_set(shd, &vp, rect, FALSE);
+	}
 
 	return (EXIT_OK);
 }
@@ -1522,13 +1599,27 @@ static BYTE d3d9_vertex_declaration_create(_shader *shd) {
 
 	return (EXIT_OK);
 }
-static void d3d9_vertex_buffer_set(_shader *shd, _viewport *vp, _texture_rect *prev) {
+static void d3d9_vertex_buffer_set(_shader *shd, _viewport *vp, _texture_rect *prev, BYTE last_pass) {
 	D3DXMATRIX proj, ortho, rot;
 	FLOAT u = (FLOAT)prev->base.w / prev->w;
 	FLOAT v = (FLOAT)prev->base.h / prev->h;
 	void *buffer;
-	const UINT rotation = 0;
+	float rotation = 0;
 	UINT i;
+
+	if (last_pass == TRUE) {
+		switch (cfg->screen_rotation) {
+			case ROTATE_90:
+				rotation = 270.0f;
+				break;
+			case ROTATE_180:
+				rotation = 180.0f;
+				break;
+			case ROTATE_270:
+				rotation = 90.0f;
+				break;
+		}
+	}
 
 	shd->vb[0].x = 0.0f;
 	shd->vb[0].y = vp->h;
@@ -1591,7 +1682,7 @@ static void d3d9_vertex_buffer_set(_shader *shd, _viewport *vp, _texture_rect *p
 
 	D3DXMatrixOrthoOffCenterLH(&ortho, 0, vp->w, 0, vp->h, 0, 1);
 	D3DXMatrixIdentity(&rot);
-	D3DXMatrixRotationZ(&rot, rotation * (M_PI / 2.0));
+	D3DXMatrixRotationZ(&rot, rotation * (M_PI / 180.0f));
 
 	D3DXMatrixMultiply(&proj, &ortho, &rot);
 	D3DXMatrixTranspose(&shd->mvp, &proj);
@@ -1666,7 +1757,7 @@ INLINE D3DTEXTUREFILTERTYPE d3d9_shader_filter(UINT type) {
 			return D3DTEXF_POINT;
 	}
 }
-INLINE static void d3d9_shader_params_text_set(_shader *shd) {
+INLINE static void d3d9_shader_params_overlay_set(_shader *shd) {
 	UINT i;
 
 	if (shd->uni.mvp) {

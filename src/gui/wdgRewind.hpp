@@ -37,6 +37,7 @@ class wdgRewind : public QWidget, public Ui::wdgRewind {
 
 	protected:
 		void changeEvent(QEvent *event);
+		void paintEvent(QPaintEvent *event);
 
 	public:
 		bool step_timer_control(void);

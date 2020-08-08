@@ -66,6 +66,12 @@ static _snd_thread snd_thread;
 static _sndio sndio;
 static _callback_data cbd;
 
+_snd snd;
+_snd_list snd_list;
+
+void (*snd_apu_tick)(void);
+void (*snd_end_frame)(void);
+
 BYTE snd_init(void) {
 	memset(&snd, 0x00, sizeof(_snd));
 	memset(&sndio, 0x00, sizeof(_sndio));
@@ -232,11 +238,9 @@ BYTE snd_playback_start(void) {
 		snd.period.samples = (snd.samplerate / factor[cfg->audio_buffer_factor]);
 
 		par.bits = 16;
-		par.sig = 1;
 		par.pchan = snd.channels;
 		par.rate = snd.samplerate;
 		par.round = snd.period.samples;
-		par.appbufsz = snd.period.samples;
 		par.xrun = SIO_IGNORE;
 
 		if (!sio_setpar(sndio.playback, &par)) {

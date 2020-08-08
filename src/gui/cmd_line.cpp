@@ -23,7 +23,6 @@
 #include "cmd_line.h"
 #include "conf.h"
 #include "version.h"
-#include "video/gfx.h"
 #include "gui.h"
 
 #define req_arg true
@@ -61,6 +60,7 @@ static struct _cl_option {
 	{ "fullscreen",            req_arg, "u"},
 	{ "int-scl-fullscreen",    req_arg, "r"},
 	{ "stretch-fullscreen",    req_arg, "t"},
+	{ "screen-rotation",       req_arg,  0 },
 	{ "audio",                 req_arg, "a"},
 	{ "audio-buffer-factor",   req_arg, "b"},
 	{ "samplerate",            req_arg, "l"},
@@ -132,7 +132,7 @@ BYTE cmd_line_parse(int argc, uTCHAR **argv) {
 							}
 						}
 					}
-					opt = (*((char *) skey.toLatin1().constData()));
+					opt = (*((char *)skey.toLatin1().constData()));
 					break;
 				}
 			}
@@ -152,6 +152,8 @@ BYTE cmd_line_parse(int argc, uTCHAR **argv) {
 				} else if (key == "portable") {
 					// l'ho gia' controllato quindi qui non faccio niente
 				} else if (key == "txt-on-screen") {
+					set_int(cfg_from_file.txt_on_screen, SET_TEXT_ON_SCREEN);
+				} else if (key == "screen-rotation") {
 					set_int(cfg_from_file.txt_on_screen, SET_TEXT_ON_SCREEN);
 				} else if (key == "input-display") {
 					set_int(cfg_from_file.input_display, SET_INPUT_DISPLAY);
@@ -338,6 +340,7 @@ static void usage(QString name) {
 			uL("" uPERCENTs "\n")
 			uL("" uPERCENTs "\n")
 			uL("" uPERCENTs "\n")
+			uL("" uPERCENTs "\n")
 #if defined (WITH_OPENGL)
 			uL("" uPERCENTs "\n")
 #endif
@@ -372,6 +375,7 @@ static void usage(QString name) {
 			main_cfg[SET_FULLSCREEN_IN_WINDOW].hlp,
 			main_cfg[SET_INTEGER_FULLSCREEN].hlp,
 			main_cfg[SET_STRETCH_FULLSCREEN].hlp,
+			main_cfg[SET_SCREEN_ROTATION].hlp,
 			main_cfg[SET_AUDIO_OUTPUT_DEVICE].hlp,
 			main_cfg[SET_AUDIO].hlp,
 			main_cfg[SET_AUDIO_BUFFER_FACTOR].hlp,
