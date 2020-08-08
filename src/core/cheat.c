@@ -179,12 +179,16 @@ void gamegenie_load_rom(void *rom_mem) {
 }
 
 void cheatslist_init(void) {
+#if !defined (WITH_SDL2)    
 	gui_objcheat_init();
+#endif
 	memset(&cheats_list, 0x00, sizeof(cheats_list));
 }
 void cheatslist_read_game_cheats(void) {
 	cheatslist_blank();
+#if !defined (WITH_SDL2)    
 	gui_objcheat_read_game_cheats();
+#endif
 }
 void cheatslist_blank(void) {
 	if (cheats_list.rom.counter > 0) {

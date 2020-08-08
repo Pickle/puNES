@@ -171,13 +171,15 @@ BYTE uncompress_archive_extract_file(_uncompress_archive *archive, BYTE type) {
 			rc = uncompress_extract_from_archive(archive, selected, type);
 			break;
 		default:
-			 selected = gui_uncompress_selection_dialog(archive, type);
+#if !defined (WITH_SDL2)            
+            selected = gui_uncompress_selection_dialog(archive, type);
 
 			if (selected == UNCOMPRESS_NO_FILE_SELECTED) {
 				rc = UNCOMPRESS_EXIT_IS_COMP_BUT_NOT_SELECTED;
 			} else {
 				rc = uncompress_extract_from_archive(archive, selected, type);
 			}
+#endif
 			break;
 	}
 

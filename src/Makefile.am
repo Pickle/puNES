@@ -12,9 +12,13 @@ bin_PROGRAMS = punes
 
 punes_SOURCES = \
 	core/main.c \
-	gui/resources.cpp \
 	core/palette.c \
 	$(ico_stuff)
+	
+if !WITH_SDL2
+punes_SOURCES += \
+	gui/resources.cpp
+endif	
 
 punes_LDADD = \
 	core/libcore.a \

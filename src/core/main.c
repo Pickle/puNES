@@ -54,9 +54,13 @@ int main(int argc, char **argv) {
 	info.doublebuffer = TRUE;
 	info.machine[HEADER] = info.machine[DATABASE] = DEFAULT;
 
+#if !defined (WITH_SDL2)
 	if (cmd_line_check_portable(argc, argv) == TRUE) {
 		info.portable = TRUE;
-	} else {
+	} 
+	else 
+#endif
+    {
 		info.portable = FALSE;
 	}
 
@@ -130,17 +134,21 @@ int main(int argc, char **argv) {
 
 	// tratto il file di configurazione ed
 	// i parametri passati dalla riga di comando.
+#if !defined (WITH_SDL2)	
 	settings_init();
 	if (cmd_line_parse(argc, argv) == EXIT_ERROR) {
 		emu_quit();
 		return (EXIT_SUCCESS);
 	}
+#endif
 
 	ufprintf(stderr, uL("INFO: path " uPERCENTs "\n"), info.base_folder);
 
+#if !defined (WITH_SDL2)
 	recent_roms_init();
 	recent_roms_parse();
-
+#endif
+    
 	uncompress_init();
 
 	ppu_init();

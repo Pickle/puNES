@@ -554,18 +554,27 @@ void gfx_text_clear(_txt_element *ele) {
 	text_calculate_real_x_y(ele, &x, &y);
 
 	glBindTexture(GL_TEXTURE_2D, opengl.text.id);
+
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, ele->w);
+#endif
 	glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, ele->w, ele->h, TI_FRM, TI_TYPE, ele->blank);
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 }
 void gfx_text_blit(_txt_element *ele, _txt_rect *rect) {
 	if (!cfg->txt_on_screen) {
 		return;
 	}
 	glBindTexture(GL_TEXTURE_2D, opengl.text.id);
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, rect->w);
+#endif
 	glTexSubImage2D(GL_TEXTURE_2D, 0, rect->x, rect->y, rect->w, rect->h, TI_FRM, TI_TYPE, ele->surface);
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 }
 
 void gfx_apply_filter(void) {

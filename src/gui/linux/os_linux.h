@@ -26,10 +26,12 @@ static int __nsleep(const struct timespec *req, struct timespec *rem);
 
 void gui_init(int *argc, char **argv) {
 	memset(&gui, 0, sizeof(gui));
+#if !defined (WITH_SDL2)    
 	qt = {};
 
 	qt.app = new QApplication((*argc), argv);
-
+#endif
+    
 	info.gui = TRUE;
 	gui.in_update = FALSE;
 	gui.main_win_lfp = 0;
@@ -48,9 +50,11 @@ void gui_init(int *argc, char **argv) {
 	{
 		gui.home = getenv("HOME");
 
+#if !defined (WITH_SDL2)
 		if (!gui.home) {
 			gui.home = QDir::homePath().toUtf8().constData();
 		}
+#endif
 
 		if (info.portable) {
 			uTCHAR path[usizeof(info.base_folder)];
@@ -93,7 +97,11 @@ void gui_sleep(double ms) {
 	__nsleep(&req, &rem);
 }
 int gui_screen_id(void) {
+#if defined (WITH_SDL2)    
+	int wid = 0;    
+#else
 	int wid = qt.screen->wogl->winId();
+#endif
 
 	return (wid);
 }

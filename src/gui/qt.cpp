@@ -108,6 +108,16 @@ BYTE gui_create(void) {
 #if defined (WITH_OPENGL)
 	QSurfaceFormat fmt;
 
+#if defined (WITH_OPENGLES)
+	fmt.setRenderableType(QSurfaceFormat::OpenGLES);
+    fmt.setVersion(2,0);
+	fmt.setProfile(QSurfaceFormat::CoreProfile);
+	fmt.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
+	fmt.setRedBufferSize(5);
+	fmt.setGreenBufferSize(6);
+	fmt.setBlueBufferSize(5);
+	fmt.setAlphaBufferSize(1);
+#else
 	fmt.setRenderableType(QSurfaceFormat::OpenGL);
 	fmt.setProfile(QSurfaceFormat::CoreProfile);
 	fmt.setSwapBehavior(QSurfaceFormat::DoubleBuffer);
@@ -115,9 +125,11 @@ BYTE gui_create(void) {
 	fmt.setGreenBufferSize(8);
 	fmt.setBlueBufferSize(8);
 	fmt.setAlphaBufferSize(8);
+#endif
 	fmt.setSwapInterval(cfg->vsync);
 	QSurfaceFormat::setDefaultFormat(fmt);
 #endif
+
 	qt.mwin = new mainWindow();
 	qt.screen = qt.mwin->screen;
 	qt.objch->setParent(qt.mwin);

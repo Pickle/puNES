@@ -87,10 +87,12 @@ struct _fps_pause {
 } fps_pause;
 
 void emu_quit(void) {
+#if !defined (WITH_SDL2)    
 	if (cfg->save_on_exit) {
 		settings_save();
 	}
-
+#endif
+	
 	map_quit();
 
 	cheatslist_quit();
@@ -118,7 +120,9 @@ BYTE emu_frame(void) {
 
 	info.start_frame_0 = FALSE;
 
+#if !defined (WITH_SDL2)        
 	gui_control_visible_cursor();
+#endif
 
 	// eseguo un frame dell'emulatore
 	if (info.no_rom | info.turn_off) {
@@ -750,8 +754,10 @@ BYTE emu_turn_on(void) {
 		}
 	}
 
+#if !defined (WITH_SDL2)    	
 	gui_external_control_windows_show();
 	gui_wdgrewind_play();
+#endif
 
 	info.bat_ram_frames_snap = machine.fps * (60 * 3);
 
@@ -785,8 +791,10 @@ BYTE emu_reset(BYTE type) {
 
 	emu_pause(TRUE);
 
+#if !defined (WITH_SDL2)        
 	gui_wdgrewind_play();
-
+#endif
+    
 	if (type == CHANGE_ROM) {
 		if (emu_ctrl_if_rom_exist() == EXIT_ERROR) {
 			emu_pause(FALSE);
@@ -827,7 +835,9 @@ BYTE emu_reset(BYTE type) {
 
 		gfx_set_screen(NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, NO_CHANGE, TRUE, FALSE);
 
+#if !defined (WITH_SDL2)            
 		gui_update_gps_settings();
+#endif
 	}
 
 	if ((info.reset == CHANGE_MODE) && (overscan_set_mode(machine.type) == TRUE)) {
@@ -919,7 +929,9 @@ BYTE emu_reset(BYTE type) {
 	memset(&vs_system.coins, 0x00, sizeof(vs_system.coins));
 	vs_system.watchdog.next = vs_system_wd_next();
 
+#if !defined (WITH_SDL2)        
 	gui_emit_et_external_control_windows_show();
+#endif
 
 	info.bat_ram_frames = 0;
 
@@ -1102,15 +1114,19 @@ INLINE static void emu_frame_started(void) {
 	info.frame_status = FRAME_STARTED;
 }
 INLINE static void emu_frame_finished(void) {
+#if !defined (WITH_SDL2)        
 	if ((cfg->cheat_mode == GAMEGENIE_MODE) && (gamegenie.phase == GG_LOAD_ROM)) {
 		gui_emit_et_gg_reset();
 	}
+#endif
 
 	tas.lag_actual_frame = tas.lag_next_frame;
 
 	if (tas.lag_actual_frame) {
 		tas.total_lag_frames++;
+#if !defined (WITH_SDL2)            
 		gui_ppu_hacks_widgets_update();
+#endif
 	}
 
 	if (snd_end_frame) {
@@ -1123,9 +1139,11 @@ INLINE static void emu_frame_finished(void) {
 		map_prg_ram_battery_save();
 	}
 
+#if !defined (WITH_SDL2)    	
 	if (vs_system.enabled & vs_system.watchdog.reset) {
 		gui_emit_et_vs_reset();
 	}
+#endif
 
 	r4011.frames++;
 }
@@ -1265,10 +1283,12 @@ static uTCHAR *emu_ctrl_rom_ext(uTCHAR *file) {
 	return (ext);
 }
 static void emu_recent_roms_add(BYTE *add, uTCHAR *file) {
+#if !defined (WITH_SDL2)
 	if ((*add) == TRUE) {
 		(*add) = FALSE;
 		recent_roms_add(file);
 	}
+#endif
 }
 #if defined (__unix__)
 static BYTE emu_test_tmp_dir(const uTCHAR *tmp_dir) {

@@ -19,7 +19,13 @@
 #ifndef OPENGL_H_
 #define OPENGL_H_
 
+#if defined (WITH_GLEW)
 #include "glew/glew.h"
+#endif
+#if defined (WITH_OPENGLES)
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
 #if defined (WITH_OPENGL_CG)
 #include <Cg/cg.h>
 #include <Cg/cgGL.h>
@@ -27,6 +33,18 @@
 #include "shaders.h"
 #include "common.h"
 #include "video/gfx.h"
+
+#if defined (WITH_OPENGLES)
+#ifndef GL_BGRA
+    #ifdef GL_BGRA_EXT
+    #define GL_BGRA             GL_BGRA_EXT
+    #else
+    #define GL_BGRA             0x80E1
+    #endif
+#endif
+
+#define GL_CLAMP_TO_BORDER      GL_CLAMP_TO_EDGE
+#endif
 
 #if defined (WITH_OPENGL_CG)
 typedef struct _shader_prg_cg {
@@ -219,6 +237,13 @@ typedef struct _opengl {
 #endif
 } _opengl;
 
+#if defined (WITH_OPENGLES)
+enum _opengl_texture_format {
+	TI_INTFRM = GL_BGRA,
+	TI_FRM = GL_BGRA,
+	TI_TYPE = GL_UNSIGNED_BYTE,
+};
+#else
 enum _opengl_texture_format {
 	TI_INTFRM = GL_RGBA8,
 	TI_FRM = GL_BGRA,
@@ -228,6 +253,7 @@ enum _opengl_texture_format {
 	TI_S_INTFRM = GL_SRGB8_ALPHA8,
 	TI_S_TYPE = GL_UNSIGNED_BYTE
 };
+#endif
 
 #if defined (__cplusplus)
 #define EXTERNC extern "C"

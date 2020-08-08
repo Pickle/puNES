@@ -45,7 +45,9 @@
 static void opengl_context_delete(void);
 static void opengl_screenshot(void);
 
+#if defined (WITH_GLEW)
 static BYTE opengl_glew_init(void);
+#endif
 static BYTE opengl_texture_create(_texture *texture, GLuint index);
 static void opengl_texture_simple_create(_texture_simple *texture, GLuint w, GLuint h, BYTE text);
 static BYTE opengl_texture_lut_create(_lut *lut, GLuint index);
@@ -98,6 +100,10 @@ static const _vertex_buffer vb_flipped[4] = {
 };
 
 BYTE opengl_init(void) {
+#if !defined (WITH_GLEW)
+	const char *output;
+#endif
+
 	memset(&gfx.vp, 0x00, sizeof(gfx.vp));
 
 	memset(&opengl.attribs, 0x00, sizeof(opengl.attribs));
@@ -111,9 +117,24 @@ BYTE opengl_init(void) {
 	memset(&opengl.cg, 0x00, sizeof(opengl.cg));
 #endif
 
+#if defined (WITH_GLEW)
 	if (opengl_glew_init() == EXIT_ERROR) {
 		return (EXIT_ERROR);
 	}
+#else
+    output = (char*)glGetString( GL_VENDOR );
+    printf( "GL_VENDOR: %s\n", output );
+    output = (char*)glGetString( GL_RENDERER );
+    printf( "GL_RENDERER: %s\n", output );
+    output = (char*)glGetString( GL_VERSION );
+    printf( "GL_VERSION: %s\n", output );
+    output = (char*)glGetString( GL_SHADING_LANGUAGE_VERSION );
+    printf( "GL_SHADING_LANGUAGE_VERSION: %s\n", output );
+#if !defined (RELEASE)
+    output = (char*)glGetString( GL_EXTENSIONS );
+    printf( "GL_EXTENSIONS: %s\n", output );
+#endif
+#endif
 
 	// Calculate projection
 	opengl_matrix_4x4_ortho(&opengl.mvp, 0.0f, 1.0f, 0.0f, 1.0f, -1.0f, 1.0f);
@@ -445,19 +466,25 @@ void opengl_draw_scene(void) {
 		w -= (overscan.borders->left + overscan.borders->right) * gfx.filter.width_pixel;
 		h -= (overscan.borders->up + overscan.borders->down) * gfx.filter.factor;
 	}
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, opengl.surface.w);
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, offset_x);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, offset_y);
+#endif
 	gfx_thread_lock();
 	glTexSubImage2D(GL_TEXTURE_2D, 0, offset_x, offset_y, w, h, TI_FRM, TI_TYPE, opengl.surface.pixels);
 	gfx_thread_unlock();
+#if !defined (WITH_OPENGLES)
 	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
 	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
 	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+#endif
 
+#if !defined (WITH_OPENGLES)
 	if (opengl.supported_fbo.srgb && !cfg->disable_srgb_fbo) {
 		glEnable(GL_FRAMEBUFFER_SRGB);
 	}
+#endif
 
 	// fbo e pass
 	for (i = 0; i < shader_effect.pass; i++) {
@@ -469,9 +496,11 @@ void opengl_draw_scene(void) {
 
 		if (i == shader_effect.last_pass) {
 			fbo = gui_wdgopengl_framebuffer_id();
+#if !defined (WITH_OPENGLES)
 			if (opengl.supported_fbo.srgb && !cfg->disable_srgb_fbo) {
 				glDisable(GL_FRAMEBUFFER_SRGB);
 			}
+#endif
 		}
 
 		if (i == 0) {
@@ -671,6 +700,7 @@ static void opengl_context_delete(void) {
 
 	info.sRGB_FBO_in_use = FALSE;
 }
+
 static void opengl_screenshot(void) {
 	float w, h;
 	void *buffer;
@@ -678,11 +708,15 @@ static void opengl_screenshot(void) {
 	if (gfx.screenshot.type == SCRSH_STANDARD) {
 		w = gfx.w[VIDEO_MODE] * gfx.device_pixel_ratio;
 		h = gfx.h[VIDEO_MODE] * gfx.device_pixel_ratio;
+#if !defined (WITH_OPENGLES)
 		glReadBuffer(GL_FRONT);
+#endif
 		if ((buffer = malloc(w * h * 4)) == NULL) {
 			return;
 		}
+#if !defined (WITH_OPENGLES)
 		glPixelStorei(GL_PACK_ALIGNMENT, 1);
+#endif
 		glReadPixels(0, 0, w, h, GL_BGRA, GL_UNSIGNED_BYTE, buffer);
 		gui_save_screenshot(w, h, buffer, TRUE);
 		free(buffer);
@@ -698,6 +732,7 @@ static void opengl_screenshot(void) {
 	}
 }
 
+#if defined (WITH_GLEW)
 static BYTE opengl_glew_init(void) {
 	GLenum err;
 
@@ -734,6 +769,8 @@ static BYTE opengl_glew_init(void) {
 
 	return (EXIT_ERROR);
 }
+#endif
+
 static BYTE opengl_texture_create(_texture *texture, GLuint index) {
 	_shader_pass *sp = &shader_effect.sp[index];
 	_shader_scale *sc = &sp->sc;
@@ -743,6 +780,7 @@ static BYTE opengl_texture_create(_texture *texture, GLuint index) {
 	_texture_rect *rect = &texture->rect;
 	_viewport *vp = &texture->vp;
 	GLuint wrap;
+    GLenum status;
 
 	if (index == 0) {
 		prev = &opengl.screen.tex[0].rect;
@@ -758,9 +796,11 @@ static BYTE opengl_texture_create(_texture *texture, GLuint index) {
 		sc->type.y = SHADER_SCALE_VIEWPORT;
 	}
 
+#if !defined (WITH_OPENGLES)
 	if (sp->fbo_srgb && opengl.supported_fbo.srgb) {
 		info.sRGB_FBO_in_use = TRUE;
 	}
+#endif
 
 #if defined (FH_SHADERS_GEST)
 	switch (sc->type.x) {
@@ -857,11 +897,15 @@ static BYTE opengl_texture_create(_texture *texture, GLuint index) {
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
 
 	// creo la texture nella GPU
+#if !defined (WITH_OPENGLES)
 	if (sp->fbo_flt && opengl.supported_fbo.flt) {
 		glTexImage2D(GL_TEXTURE_2D, 0, TI_F_INTFRM, rect->w, rect->h, 0, TI_FRM, TI_F_TYPE, NULL);
 	} else if (sp->fbo_srgb && opengl.supported_fbo.srgb && !cfg->disable_srgb_fbo) {
 		glTexImage2D(GL_TEXTURE_2D, 0, TI_S_INTFRM, rect->w, rect->h, 0, TI_FRM, TI_S_TYPE, NULL);
-	} else {
+	}
+    else
+#endif
+    {
 		glTexImage2D(GL_TEXTURE_2D, 0, TI_INTFRM, rect->w, rect->h, 0, TI_FRM, TI_TYPE, NULL);
 	}
 
@@ -874,8 +918,33 @@ static BYTE opengl_texture_create(_texture *texture, GLuint index) {
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
-	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+    status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+	if (status != GL_FRAMEBUFFER_COMPLETE) {
 		fprintf(stderr, "OPENGL: Error on create FBO.\n");
+
+        switch(status)
+        {
+            case GL_FRAMEBUFFER_COMPLETE:
+                printf( "OPENGL: GL_FRAMEBUFFER_COMPLETE: created successfully resolution: %dx%d\n", rect->w, rect->h );
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+                printf( "OPENGL: GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT: Not all framebuffer attachment points are framebuffer attachment complete.\n" );
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+                printf( "OPENGL: GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS: Not all attached images have the same width and height.\n" );
+                break;
+            case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+                printf( "OPENGL: GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: No images are attached to the framebuffer.\n" );
+                break;
+            case GL_FRAMEBUFFER_UNSUPPORTED:
+                printf( "OPENGL: GL_FRAMEBUFFER_UNSUPPORTED: The combination of internal formats of the attached images violates \
+                                                             an implementation-dependent set of restrictions.\n" );
+                break;
+            default:
+                printf( "OPENGL: FBO failed\n" );
+                break;
+        }
+
 		glBindFramebuffer(GL_FRAMEBUFFER, gui_wdgopengl_framebuffer_id());
 		glBindTexture(GL_TEXTURE_2D, 0);
 		return (EXIT_ERROR);

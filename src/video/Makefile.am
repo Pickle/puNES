@@ -31,12 +31,17 @@ libvideo_a_SOURCES += \
 	opengl/gfx.c \
 	opengl/opengl.c \
 	opengl/opengl.h \
-	opengl/shdcode.h \
+	opengl/shdcode.h
+endif
+
+if WITH_GLEW
+libvideo_a_SOURCES += \
 	opengl/glew/glew.c \
 	opengl/glew/glew.h \
 	opengl/glew/glxew.h \
 	opengl/glew/wglew.h
 endif
+
 
 if WITH_D3D9
 libvideo_a_SOURCES += \

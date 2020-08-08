@@ -1,3 +1,31 @@
+if WITH_SDL2
+
+noinst_LIBRARIES = libgui.a
+libgui_a_SOURCES = \
+	sdl2/sdl2.cpp \
+	sdl2/sdl2.h
+
+if LINUX
+libgui_a_SOURCES += \
+	linux/os_linux.h
+
+AM_CXXFLAGS = -fPIC
+endif
+
+if OPENBSD
+libgui_a_SOURCES += \
+	openbsd/os_openbsd.h
+
+AM_CXXFLAGS = -fPIC
+endif
+
+if WINDOWS
+libgui_a_SOURCES += \
+	windows/os_windows.h \
+	windows/win.h
+endif
+
+else
 resources.cpp: designer/resources.qrc $(TRADUCTION_QM)
 	$(RCC) $(srcdir)/designer/resources.qrc -name resources -o $@
 
@@ -244,4 +272,6 @@ libgui_a_SOURCES += \
 	windows/jstick.h \
 	windows/os_windows.h \
 	windows/win.h
+endif
+
 endif
